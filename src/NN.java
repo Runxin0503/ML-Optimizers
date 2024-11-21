@@ -1,3 +1,6 @@
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+
 public class NN {
     /** The number of Input Neurons in this Neural Network */
     private final int inputNum;
@@ -30,6 +33,10 @@ public class NN {
 
     /** The Cost Function for this Neural Network */
     public final Cost costFunction;
+
+    public static void learn(NN NN,int i, double v, double[][] testCaseInput, double[][] testCaseOutput) {
+        
+    }
 
     public NN(Activation hiddenAF,Activation outputAF,Cost costFunction,int...layers){
         this.inputNum=layers[0];
@@ -81,17 +88,42 @@ public class NN {
      * backpropagation.
      */
     private void backPropagate(double[] input,double[] expectedOutput){
-        recursiveBackPropagation(input,expectedOutput,0);
+        //input -> output -> hiddenAFOutput -> ... -> hiddenAFDeriv -> layerInputSumDeriv
+        double[] hiddenAFOutput = layers[0].calculateWeightedOutput(input);
+        hiddenAF.calculate(hiddenAFOutput);
+
+        //obtains derivative of input sum at current layer
+        double[] inputSumDeriv = recursiveBackPropagation(hiddenAFOutput,expectedOutput,1);
+        hiddenAF.derivative(inputSumDeriv);
+
+        layers[0].updateGradient(weightGradiant[0],biasGradiant[0],inputSumDeriv,input);
     }
 
     /**
-     * Given any {@code layerIndex} and its respective layer inputs, returns the derivative of the
+     * Given any {@code layerIndex} > 0 and its respective layer inputs, returns the derivative of the
      * input sum of all neurons in that layer.
      * <br>{@code expectedOutput} is passed down the recursive calls until output layer is reached
      * @return array containing derivative of previous layer's activation function with respect to loss function
      */
-    private double[] recursiveBackPropagation(final double[] input,double[] expectedOutput,int layerIndex){
-        //TODO rewrite according to whiteboard o7
-        return null;
+    private double[] recursiveBackPropagation(double[] input,double[] expectedOutput,int layerIndex){
+        if(layerIndex == layers.length - 1){
+            //input -> output -> outputAF -> outputAFDeriv -> layerInputSumDeriv
+            double[] inputSumDeriv = layers[layerIndex].calculateWeightedOutput(input);
+            outputAF.calculate(inputSumDeriv);
+            costFunction.derivative(inputSumDeriv,expectedOutput);
+            outputAF.derivative(inputSumDeriv);
+
+            return layers[layerIndex].updateGradient(weightGradiant[layerIndex],biasGradiant[layerIndex], inputSumDeriv,input);
+        }
+
+        //input -> output -> hiddenAFOutput -> ... -> hiddenAFDeriv -> layerInputSumDeriv
+        double[] hiddenAFOutput = layers[layerIndex].calculateWeightedOutput(input);
+        hiddenAF.calculate(hiddenAFOutput);
+
+        //obtains derivative of input sum at current layer
+        double[] inputSumDeriv = recursiveBackPropagation(hiddenAFOutput,expectedOutput,layerIndex+1);
+        hiddenAF.derivative(inputSumDeriv);
+
+        return layers[layerIndex].updateGradient(weightGradiant[layerIndex],biasGradiant[layerIndex],inputSumDeriv,input);
     }
 }

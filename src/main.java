@@ -31,7 +31,7 @@ public class main {
                     testCaseOutput[i][moly[i + l * 10]] = 1.0;
                 }
 
-                iCanREAD.learn(2, 0.9, testCaseInput, testCaseOutput);
+                NN.learn(iCanREAD,2, 0.9, testCaseInput, testCaseOutput);
 
                 if (l % 700 == 0) {
                     double temp = 0;
