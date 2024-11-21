@@ -21,7 +21,7 @@ public class main {
             throw new RuntimeException(e);
         }
         System.out.println("LETS START LEARNING!\n--------------------");
-        NN iCanREAD = new NN(784,100,100,10);
+        NN iCanREAD = new NN(Activation.ReLU,Activation.softmax,Cost.crossEntropy,784,100,100,10);
         for(int iteration=0;iteration<2;iteration++) {
             for (int l = 0; l < 6300; l++) {
                 double[][] testCaseInput = new double[10][784];

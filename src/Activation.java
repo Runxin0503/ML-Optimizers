@@ -45,9 +45,9 @@ public enum Activation {
         this.derivativeFunction = derivativeFunction;
     }
 
-    /** Returns the result of applying this Activation Function onto the given input array */
+    /** Transform the given input array to the result of applying this Activation Function on that array*/
     public void calculate(double[] input) {this.function.accept(input);}
 
-    /** Returns the result of applying the derivative of this Activation Function onto the given input array */
+    /** Transform the given input array to the result of applying the derivative of this Activation Function on that array */
     public void derivative(double[] input) {this.derivativeFunction.accept(input);}
 }

@@ -1,119 +1,97 @@
 public class NN {
-    int inputNum;
-    int outputNum;
-    int[] numHidden;
-    int[] layers;
-    Layer[] hiddenLayers;
-    double[][] biasGradiant;
-    double[][][] weightGradiant;
+    /** The number of Input Neurons in this Neural Network */
+    private final int inputNum;
 
-    public NN(int...layers){
-        this.layers = layers;
+    /** The number of Output Neurons in this Neural Network */
+    private final int outputNum;
 
-        inputNum=layers[0];
-        outputNum=layers[layers.length-1];
-        numHidden = new int[layers.length-1];
-        hiddenLayers = new Layer[numHidden.length];
+    /** The array of Layers in this Neural Network */
+    private final Layer[] layers;
 
-        for(int i=1;i<layers.length;i++){
-            numHidden[i-1]=layers[i];
-            hiddenLayers[i-1]= i!=layers.length-1 ? new Layer(layers[i],layers[i-1],"ReLU","crossEntropy") : new Layer(layers[i],layers[i-1],"softMax","crossEntropy");
-        }
+    /** The Gradients for derivative of all Biases with respect to the loss function for all neurons in all layers of this Neural Network
+     * <br>Rows: The {@link Layer} for which the weights are stored in.
+     * <br>Columns: The bias deriv of a node in that layer
+     */
+    private double[][] biasGradiant;
 
-        clearGradiants();
+    /**
+     * The Gradients for derivative of all Weights with respect to the loss function for all synapses between all layers of this Neural Network.
+     * <br>Layer: The {@link Layer} for which the weights are stored in.
+     * <br>Rows: The neuron {@code n} stored in that layer
+     * <br>Columns: The weight deriv of a synapse pointing to {@code n}
+     */
+    private double[][][] weightGradiant;
+
+    /** The Activation Function for hidden layers in this Neural Network */
+    private final Activation hiddenAF;
+
+    /** The Activation Function for the output / final layer in this Neural Network */
+    public final Activation outputAF;
+
+    /** The Cost Function for this Neural Network */
+    public final Cost costFunction;
+
+    public NN(Activation hiddenAF,Activation outputAF,Cost costFunction,int...layers){
+        this.inputNum=layers[0];
+        this.outputNum=layers[layers.length-1];
+        this.layers = new Layer[layers.length-1];
+
+        this.hiddenAF = hiddenAF;
+        this.outputAF = outputAF;
+        this.costFunction = costFunction;
+
+        for(int i=1;i<layers.length;i++)
+            this.layers[i-1] = new Layer(layers[i-1],layers[i]);
     }
 
-    /*
-     * returns the output of the neural network
+    /**
+     * Applies the weights and biases of this Neural Network to transform the {@code input} array to an
+     * {@code output} array of predictions
      */
     public double[] calculateOutput(double[] input){
-        if (input.length!=inputNum){
-            System.out.println("ERROR");
-            return null;
+        assert input.length == inputNum;
+
+        double[] result = layers[0].calculateWeightedOutput(input);
+        for(int i = 1; i< layers.length; i++){
+            hiddenAF.calculate(result);
+            result = layers[i].calculateWeightedOutput(result);
         }
-        double[] pointerHelper = hiddenLayers[0].calculateWeightedOutput(input);
-        for(int i=1;i<hiddenLayers.length;i++){
-            pointerHelper = hiddenLayers[i].calculateWeightedOutput(pointerHelper);
-        }
-        return pointerHelper;
+        outputAF.calculate(result);
+
+        return result;
     }
 
-    /*
-     * returns the total cost one run of the neural network
-     */
+    /** Returns the loss of this Neural Network, or how far the expected output differs from the actual output. */
     public double calculateCosts(double[] input,double[] expectedOutputs){
         double[] output = calculateOutput(input);
         double sum=0;
 
-        for(int i=0;i<output.length;i++){
-            sum+=hiddenLayers[hiddenLayers.length-1].calculateCost(output[i], expectedOutputs[i]);
+        costFunction.calculate(output,expectedOutputs);
+
+        for (double v : output) {
+            sum += v;
         }
 
         return sum;
     }
 
-//---------------------------------------------------------------------------------------------------------------------------------------------
-
-    /*
-     * sets all values of the gradient variables to 0
-     * Either initializes the gradient variable or clears to save memory
+    /**
+     * Updates the {@link #weightGradiant} and {@link #biasGradiant} by calculating the output and
+     * adding the derivative of cost function relative to each weight and bias value obtained from
+     * backpropagation.
      */
-    private void clearGradiants(){
-        this.biasGradiant = new double[layers.length-1][];
-        for(int i=1;i<layers.length;i++){
-            biasGradiant[i-1]=new double[layers[i]];
-        }
-        this.weightGradiant = new double[layers.length-1][][];
-        for(int i=1;i<layers.length;i++){
-            weightGradiant[i-1]=new double[layers[i]][layers[i-1]];
-        }
+    private void backPropagate(double[] input,double[] expectedOutput){
+        recursiveBackPropagation(input,expectedOutput,0);
     }
 
-    /*
-     * Tells the layer to nudge their respective weights according to the gradiant vector
-     * Momentum is taken into account, as is the learn rate and batch size
+    /**
+     * Given any {@code layerIndex} and its respective layer inputs, returns the derivative of the
+     * input sum of all neurons in that layer.
+     * <br>{@code expectedOutput} is passed down the recursive calls until output layer is reached
+     * @return array containing derivative of previous layer's activation function with respect to loss function
      */
-    private void ApplyAllGradiants(double learnRate,double momentum,int batchSize){
-        for(int i=0;i<hiddenLayers.length;i++){
-            hiddenLayers[i].applyBiasGradiant(biasGradiant[i],learnRate,momentum,batchSize);
-            hiddenLayers[i].applyWeightGradiant(weightGradiant[i], learnRate,momentum,batchSize);
-        }
-    }
-
-    /*
-     * Uses calculus and derivatives to find the derivatives of the cost function with respect to each weight.
-     * Uses that information to generate the gradient vector, which is later applied to nudge all weights in the direction of lowest cost
-     */
-    private void backPropogation(double[] inputs,double[] expectedOutputs){
-        calculateOutput(inputs);
-
-        Layer outputLayer = hiddenLayers[hiddenLayers.length-1];
-        double[] currentNodeDeriv = outputLayer.calculateCurrentNodeDeriv(expectedOutputs);
-        outputLayer.updateAllGradiants(weightGradiant[hiddenLayers.length-1],biasGradiant[hiddenLayers.length-1]);
-
-        for(int j=hiddenLayers.length-2;j>=0;j--){
-            Layer hiddenLayer = hiddenLayers[j];
-            currentNodeDeriv = hiddenLayer.calculateCurrentNodeDeriv(hiddenLayers[j+1],currentNodeDeriv);
-            hiddenLayer.updateAllGradiants(weightGradiant[j],biasGradiant[j]);
-        }
-    }
-
-    /*
-     * runs the back-propogation function and adjusts all weights and biases based on the resulting gradient vector
-     * only works with known outputs
-     */
-    public void learn(double learnRate,double momentum,double[][] inputs,double[][] expectedOutputs){
-        if(inputs.length!=expectedOutputs.length){
-            System.out.println("ERROR");
-            return;
-        }
-
-        for(int i=0;i<inputs.length;i++){
-            backPropogation(inputs[i],expectedOutputs[i]);
-        }
-
-        ApplyAllGradiants(learnRate,momentum,inputs.length);
-
-        clearGradiants();
+    private double[] recursiveBackPropagation(final double[] input,double[] expectedOutput,int layerIndex){
+        //TODO rewrite according to whiteboard o7
+        return null;
     }
 }
