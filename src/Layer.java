@@ -52,4 +52,7 @@ public class Layer {
         }
         return activationFunctionDerivative;
     }
+
+    /** Return the number of Neurons contained in this Layer */
+    public int getNumNodes() {return nodes;}
 }
