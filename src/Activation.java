@@ -33,9 +33,8 @@ public enum Activation {
     }),
     softmax(input -> {
         double latestInputSum = 0;
-        for (double num : input) latestInputSum += num;
-        if(latestInputSum==0) Arrays.fill(input,0);
-        else for (int i = 0; i < input.length; i++) input[i] /= latestInputSum;
+        for (double num : input) latestInputSum += Math.exp(num);
+        for (int i = 0; i < input.length; i++) input[i] = Math.exp(input[i]) / latestInputSum;
     }, (output, gradient) -> {
         for (int i = 0; i < output.length; i++) {
             double val = 0;
@@ -55,8 +54,16 @@ public enum Activation {
     }
 
     /** Transform the given input array to the result of applying this Activation Function on that array*/
-    public void calculate(double[] input) {this.function.accept(input);}
+    public void calculate(double[] input) {
+        for(double v : input) assert Double.isFinite(v) : "Attempted to input invalid values into Activation Function";
+        this.function.accept(input);
+        for(double v : input) assert Double.isFinite(v) : "Activation Function returning invalid values";
+    }
 
     /** Transform the given {@code gradient} by multiplying each element with the result of applying the derivative of this Activation Function onto the {@code output} array */
-    public void derivative(double[] output,double[] gradient) {this.derivativeFunction.accept(output,gradient);}
+    public void derivative(double[] output,double[] gradient) {
+        for(double v : gradient) assert Double.isFinite(v) : "Attempted to input invalid values into Deriv of Activation Function";
+        this.derivativeFunction.accept(output,gradient);
+        for(double v : gradient) assert Double.isFinite(v) : "Deriv of Activation Function returning invalid values";
+    }
 }

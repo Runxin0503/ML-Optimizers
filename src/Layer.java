@@ -26,6 +26,7 @@ public class Layer {
 
         for(int i=0;i<nodes;i++){
             for(int j=0;j<input.length;j++){
+                assert Double.isFinite(weights[i][j]);
                 output[i] += weights[i][j]*input[j];
             }
             output[i] += bias[i];
@@ -45,6 +46,8 @@ public class Layer {
         double[] activationFunctionDerivative = new double[weights[0].length];
         for(int i=0;i<nodes;i++){
             for(int j=0;j<weights[0].length;j++){
+                assert Double.isFinite(latestInput[j]);
+                assert Double.isFinite(layerInputSumDeriv[i]);
                 weightGradient[i][j] += latestInput[j] * layerInputSumDeriv[i];
                 activationFunctionDerivative[j] += layerInputSumDeriv[i] * weights[i][j];
             }
@@ -63,8 +66,10 @@ public class Layer {
     public void applyGradiant(double[][] weightGradient,double[] biasGradient,double adjustedLearningRate,double momentum){
         for(int i=0;i<nodes;i++){
             for(int j=0;j<weights[0].length;j++){
+                assert Double.isFinite(weightGradient[i][j]);
                 weights[i][j] -= adjustedLearningRate * weightGradient[i][j];
             }
+            assert Double.isFinite(biasGradient[i]);
             bias[i] -= adjustedLearningRate * biasGradient[i];
         }
     }

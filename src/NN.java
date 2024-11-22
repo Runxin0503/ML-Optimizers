@@ -97,6 +97,7 @@ public class NN {
             hiddenAF.calculate(result);
             result = layers[i].calculateWeightedOutput(result);
         }
+        for(double v : result) assert Double.isFinite(v);
         outputAF.calculate(result);
 
         assert result.length == outputNum;
@@ -109,6 +110,8 @@ public class NN {
     public double calculateCosts(double[] input, double[] expectedOutputs) {
         double[] output = calculateOutput(input);
         double sum = 0;
+
+        for(double v : output) assert Double.isFinite(v);
 
         costFunction.calculate(output, expectedOutputs);
 
