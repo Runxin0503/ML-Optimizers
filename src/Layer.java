@@ -55,4 +55,17 @@ public class Layer {
 
     /** Return the number of Neurons contained in this Layer */
     public int getNumNodes() {return nodes;}
+
+    /**
+     * Applies the {@code weightGradient} and {@code biasGradient} to the weight and bias of this Layer.
+     * <br>Updates the weight and bias's gradient velocity vectors accordingly as well.
+     */
+    public void applyGradiant(double[][] weightGradient,double[] biasGradient,double adjustedLearningRate,double momentum){
+        for(int i=0;i<nodes;i++){
+            for(int j=0;j<weights[0].length;j++){
+                weights[i][j] -= adjustedLearningRate * weightGradient[i][j];
+            }
+            bias[i] -= adjustedLearningRate * biasGradient[i];
+        }
+    }
 }
