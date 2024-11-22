@@ -53,11 +53,20 @@ public class NN {
         synchronized (NN) {
             NN.clearGradient();
 
+            Thread[] workerThreads = new Thread[testCaseInputs.length];
             for (int i = 0; i < testCaseInputs.length; i++) {
                 double[] testCaseInput = testCaseInputs[i];
                 double[] testCaseOutput = testCaseOutputs[i];
-                new Thread(() -> NN.backPropagate(testCaseInput, testCaseOutput)).start();
+                workerThreads[i] = new Thread(() -> NN.backPropagate(testCaseInput, testCaseOutput));
+                workerThreads[i].start();
             }
+
+            for (Thread worker : workerThreads)
+                try {
+                    worker.join();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
 
             NN.applyGradient(learningRate / testCaseInputs.length, momentum);
         }
@@ -122,7 +131,7 @@ public class NN {
 
         //obtains derivative of input sum at current layer
         double[] inputSumDeriv = recursiveBackPropagation(hiddenAFOutput, expectedOutput, 1);
-        hiddenAF.derivative(inputSumDeriv);
+        hiddenAF.derivative(hiddenAFOutput,inputSumDeriv);
 
         layers[0].updateGradient(getWeightGradientLayer(0), getBiasGradientLayer(0), inputSumDeriv, input);
     }
@@ -137,10 +146,12 @@ public class NN {
     private double[] recursiveBackPropagation(double[] input, double[] expectedOutput, int layerIndex) {
         if (layerIndex == layers.length - 1) {
             //input -> output -> outputAF -> outputAFDeriv -> layerInputSumDeriv
-            double[] inputSumDeriv = layers[layerIndex].calculateWeightedOutput(input);
-            outputAF.calculate(inputSumDeriv);
+            double[] output = layers[layerIndex].calculateWeightedOutput(input),inputSumDeriv = new double[output.length];
+            outputAF.calculate(output);
+            System.arraycopy(output, 0, inputSumDeriv, 0, output.length);
+
             costFunction.derivative(inputSumDeriv, expectedOutput);
-            outputAF.derivative(inputSumDeriv);
+            outputAF.derivative(output,inputSumDeriv);
 
             return layers[layerIndex].updateGradient(getWeightGradientLayer(layerIndex),getBiasGradientLayer(layerIndex), inputSumDeriv, input);
         }
@@ -151,7 +162,7 @@ public class NN {
 
         //obtains derivative of input sum at current layer
         double[] inputSumDeriv = recursiveBackPropagation(hiddenAFOutput, expectedOutput, layerIndex + 1);
-        hiddenAF.derivative(inputSumDeriv);
+        hiddenAF.derivative(hiddenAFOutput,inputSumDeriv);
 
         return layers[layerIndex].updateGradient(getWeightGradientLayer(layerIndex), getBiasGradientLayer(layerIndex), inputSumDeriv, input);
     }

@@ -14,7 +14,7 @@ public class Layer {
     /** The bias of each neuron in this layer */
     private final double[] bias;
 
-    public Layer(int nodes,int nodesBefore) {
+    public Layer(int nodesBefore,int nodes) {
         this.nodes = nodes;
         this.bias = new double[nodes];
         this.weights = new double[nodes][nodesBefore];
