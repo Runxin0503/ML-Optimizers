@@ -10,7 +10,7 @@ public enum Cost {
     crossEntropy((output,expectedOutput) ->{
         for(int i=0;i<output.length;i++) {
             assert output[i] > 0 : "crossEntropy loss function must take in positive, non-zero values";
-            output[i] = -(expectedOutput[i]*Math.log(output[i])+(1-expectedOutput[i])*Math.log(1-output[i]));
+            output[i] = Math.min(1_000_000,-(expectedOutput[i]==1 ? Math.log(output[i]) : Math.log(1-output[i])));
         }
     },(output,expectedOutput) ->{
         for(int i=0;i<output.length;i++) output[i] = -((output[i]==0 ? 0 : expectedOutput[i]/output[i]) - (1-expectedOutput[i])*(1-output[i]));

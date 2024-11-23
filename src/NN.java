@@ -37,12 +37,12 @@ public class NN {
     /**
      * The Activation Function for the output / final layer in this Neural Network
      */
-    public final Activation outputAF;
+    private final Activation outputAF;
 
     /**
      * The Cost Function for this Neural Network
      */
-    public final Cost costFunction;
+    private final Cost costFunction;
 
     /**
      * "Trains" the given Neural Network class using the given inputs and expected outputs.
