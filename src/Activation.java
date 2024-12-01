@@ -32,15 +32,18 @@ public enum Activation {
         for(int i = 0; i < output.length; i++) output[i] = gradient[i] * (output[i] > 0 ? 1.0 : 0.1);
     }),
     softmax(input -> {
-        double latestInputSum = 0;
-        for (double num : input) latestInputSum += Math.exp(num);
-        for (int i = 0; i < input.length; i++) input[i] = Math.exp(input[i]) / latestInputSum;
+        double latestInputSum = 0,max = Integer.MIN_VALUE;
+        for (double num : input) max = Math.max(max, num);
+        for (double num : input) latestInputSum += Math.exp(num - max);
+        for (int i = 0; i < input.length; i++) input[i] = Math.exp(input[i] - max) / latestInputSum;
     }, (output, gradient) -> {
+        double[] gradientCopy = new double[gradient.length];
+        System.arraycopy(gradient, 0, gradientCopy, 0, gradient.length);
         for (int i = 0; i < output.length; i++) {
             double val = 0;
             for (int j = 0; j < output.length; j++) {
-                if (i == j) val += gradient[j] * output[i] * (1 - output[i]);
-                else val += gradient[j] * (-output[i] * output[j]);
+                if (i == j) val += gradientCopy[j] * output[i] * (1 - output[i]);
+                else val += gradientCopy[j] * (-output[i] * output[j]);
             }
             gradient[i] = val;
         }
@@ -55,9 +58,11 @@ public enum Activation {
 
     /** Transform the given input array to the result of applying this Activation Function on that array*/
     public void calculate(double[] input) {
+        double[] copy = new double[input.length];
+        System.arraycopy(input,0,copy,0,input.length);
         for(double v : input) assert Double.isFinite(v) : "Attempted to input invalid values into Activation Function";
         this.function.accept(input);
-        for(double v : input) assert Double.isFinite(v) : "Activation Function returning invalid values";
+        for(double v : input) assert Double.isFinite(v) : "Activation Function returning invalid values from input - " + Arrays.toString(copy);
     }
 
     /** Transform the given {@code gradient} by multiplying each element with the result of applying the derivative of this Activation Function onto the {@code output} array */

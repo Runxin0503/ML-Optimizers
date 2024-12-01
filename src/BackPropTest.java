@@ -2,68 +2,101 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 public class BackPropTest {
 
-    /** Tests expected crossEntropy loss on 1 output node */
+    /** Test Procedure: When input is 0, predict 1. When input is 1, predict 0 */
     @Test
-    void crossEntropyLossTest(){
-        double[] exampleData = new double[784];
-        NN NeuralNet = new NN(Activation.ReLU,Activation.softmax,Cost.crossEntropy,784,1);
-        assertEquals(0,NeuralNet.calculateCosts(exampleData,new double[]{1}));
-        assertEquals(1_000_000,NeuralNet.calculateCosts(exampleData,new double[]{0}));
+    void trainNOTNeuralNetwork() {
+        final NN linearNN = new NN(Activation.ReLU,Activation.softmax,Cost.crossEntropy,1,4,2);
+        final int iterations = 10000;
+
+        for(int i=0;i<iterations;i++) {
+            int testInput = Math.random() > 0.5 ? 1 : 0;
+            double[] testOutput = new double[2];
+            testOutput[testInput == 1 ? 0 : 1] = 1;
+
+            NN.learn(linearNN, 0.5, 0.9, new double[][]{{testInput}}, new double[][]{testOutput});
+        }
+
+        evaluate(1e-2,new double[][]{{1,0},{0,1}},
+                linearNN.calculateOutput(new double[]{1}),
+                linearNN.calculateOutput(new double[]{0}));
     }
 
-    /** Tests expected crossEntropy loss on 10 output node */
+    /** Test Procedure: AND. When input is both 1, predict 1, otherwise predict 0 */
     @Test
-    void crossEntropyLossTest2(){
-        double[] exampleData = new double[784];
-        NN NeuralNet = new NN(Activation.ReLU,Activation.softmax,Cost.crossEntropy,784,10);
-        double[] ones = new double[10];
-        Arrays.fill(ones,1);
-        assertAlmostEquals(-10*Math.log(0.9),NeuralNet.calculateCosts(exampleData,new double[10]));
-        assertAlmostEquals(-10*Math.log(0.1),NeuralNet.calculateCosts(exampleData,ones));
+    void trainANDNeuralNetwork() {
+        final NN linearNN = new NN(Activation.ReLU,Activation.softmax,Cost.crossEntropy,2,4,2);
+        final int iterations = 10000;
+
+        for(int i=0;i<iterations;i++) {
+            double[] testInput = new double[]{Math.round(Math.random()),Math.round(Math.random())};
+            double[] testOutput = new double[2];
+            testOutput[testInput[0]==1 && testInput[1]==1 ? 1 : 0] = 1;
+
+            NN.learn(linearNN, 0.5, 0.9, new double[][]{testInput}, new double[][]{testOutput});
+        }
+
+        evaluate(1e-2,new double[][]{{1,0},{1,0},{1,0},{0,1}},
+                linearNN.calculateOutput(new double[]{0,0}),
+                linearNN.calculateOutput(new double[]{0,1}),
+                linearNN.calculateOutput(new double[]{1,0}),
+                linearNN.calculateOutput(new double[]{1,1}));
     }
 
-    /** Tests Activation Function none */
+    /** Test Procedure: OR. When either input is 1, predict 1, otherwise predict 0 */
     @Test
-    void noneAFTest() {
-        //TODO implement
+    void trainORNeuralNetwork() {
+        final NN linearNN = new NN(Activation.ReLU,Activation.softmax,Cost.crossEntropy,2,4,2);
+        final int iterations = 10000;
+
+        for(int i=0;i<iterations;i++) {
+            double[] testInput = new double[]{Math.round(Math.random()),Math.round(Math.random())};
+            double[] testOutput = new double[2];
+            testOutput[testInput[0]==1 || testInput[1]==1 ? 1 : 0] = 1;
+
+            NN.learn(linearNN, 0.8, 0.9, new double[][]{testInput}, new double[][]{testOutput});
+        }
+
+        evaluate(1e-2,new double[][]{{1,0},{0,1},{0,1},{0,1}},
+                linearNN.calculateOutput(new double[]{0,0}),
+                linearNN.calculateOutput(new double[]{0,1}),
+                linearNN.calculateOutput(new double[]{1,0}),
+                linearNN.calculateOutput(new double[]{1,1}));
     }
 
-    /** Tests Activation Function ReLU */
-    @Test
-    void ReLUTest() {
-        //TODO implement
-    }
+//    /** Test Procedure: XOR. When both inputs are 1,1 or 0,0 predict 0, otherwise predict 1 */
+//    @Test
+//    void trainSemiComplexNeuralNetwork() {
+//        final NN semiComplexNN = new NN(Activation.ReLU,Activation.softmax,Cost.crossEntropy,2,4,2);
+//        final int iterations = 10000;
+//
+//        for(int i=0;i<iterations;i++) {
+//            double[] testInput = new double[]{Math.round(Math.random()),Math.round(Math.random())};
+//            double[] testOutput = new double[2];
+//            testOutput[testInput[0]==testInput[1] ? 0 : 1] = 1;
+////            System.out.println(Arrays.toString(testInput));
+//
+//            NN.learn(semiComplexNN, 0.5, 0.9, new double[][]{testInput}, new double[][]{testOutput});
+//        }
+//        System.out.println();
+//
+//        evaluate(1e-2,new double[][]{{1,0},{1,0},{0,1},{0,1}},
+//                semiComplexNN.calculateOutput(new double[]{1,1}),
+//                semiComplexNN.calculateOutput(new double[]{0,0}),
+//                semiComplexNN.calculateOutput(new double[]{0,1}),
+//                semiComplexNN.calculateOutput(new double[]{1,0}));
+//    }
 
-    /** Tests Activation Function Sigmoid */
-    @Test
-    void SigmoidTest() {
-        //TODO implement
-    }
+    private void evaluate(double threshold,double[][] expectedOutputs,double[]... actualOutputs){
+        assert expectedOutputs.length == actualOutputs.length;
 
-    /** Tests Activation Function Tanh */
-    @Test
-    void TanhTest() {
-        //TODO implement
-    }
+        for(int i=0;i<expectedOutputs.length;i++){
+            double[] actualOutput = actualOutputs[i],expectedOutput = expectedOutputs[i];
+            System.out.println(Arrays.toString(actualOutput));
 
-    /** Tests Activation Function LeakyReLU */
-    @Test
-    void LeakyReLUTest() {
-        //TODO implement
-    }
-
-    /** Tests Activation Function softmax */
-    @Test
-    void softmaxTest() {
-        //TODO implement
-    }
-
-    private static void assertAlmostEquals(double expected, double actual){
-        assertTrue(Math.abs(expected-actual)<0.00001);
+            for(int j=0;j<actualOutput.length;j++)
+                EnumTest.assertAlmostEquals(actualOutput[j],expectedOutput[j],threshold);
+        }
     }
 }

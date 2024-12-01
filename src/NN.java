@@ -83,6 +83,8 @@ public class NN {
 
         for (int i = 1; i < layers.length; i++)
             this.layers[i - 1] = new Layer(layers[i - 1], layers[i]);
+
+        clearGradient();
     }
 
     /**
@@ -127,7 +129,7 @@ public class NN {
      * adding the derivative of cost function relative to each weight and bias value obtained from
      * backpropagation.
      */
-    private void backPropagate(double[] input, double[] expectedOutput) {
+    public void backPropagate(double[] input, double[] expectedOutput) {
         //input -> output -> hiddenAFOutput -> ... -> hiddenAFDeriv -> layerInputSumDeriv
         double[] hiddenAFOutput = layers[0].calculateWeightedOutput(input);
         hiddenAF.calculate(hiddenAFOutput);

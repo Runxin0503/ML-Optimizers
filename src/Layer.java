@@ -1,3 +1,5 @@
+import java.util.Random;
+
 /** A single layer of Neurons. Contains fully connected edges to every neuron in the previous layer */
 public class Layer {
 
@@ -18,6 +20,12 @@ public class Layer {
         this.nodes = nodes;
         this.bias = new double[nodes];
         this.weights = new double[nodes][nodesBefore];
+
+        Random random = new Random();
+        for(int i = 0; i < nodes; i++) {
+            for(int j = 0; j < nodesBefore; j++) weights[i][j] = random.nextDouble(1e-12,1) * (Math.random()>0.5?-1:1);
+            bias[i] = random.nextDouble(1e-12,1) * (Math.random()>0.5?-1:1);
+        }
     }
 
     /** Applies the weights and biases of this Layer to the given input. Returns a new array. */
