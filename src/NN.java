@@ -209,7 +209,13 @@ public class NN {
      * @param momentum a hyper-parameter dictating how much of the previous velocity to keep. [0~1]
      */
     private void applyGradient(double adjustedLearningRate, double momentum) {
+        assert Double.isFinite(adjustedLearningRate);
         for(int i=0;i<layers.length;i++){
+            for(double[] dd : weightGradient[i])
+                for(double d : dd)
+                    assert Double.isFinite(d);
+            for(double d : biasGradient[i])
+                assert Double.isFinite(d);
             layers[i].applyGradiant(weightGradient[i],biasGradient[i],adjustedLearningRate,momentum);
         }
     }

@@ -23,8 +23,8 @@ public class Layer {
 
         Random random = new Random();
         for(int i = 0; i < nodes; i++) {
-            for(int j = 0; j < nodesBefore; j++) weights[i][j] = random.nextDouble(1e-12,1) * (Math.random()>0.5?-1:1);
-            bias[i] = random.nextDouble(1e-12,1) * (Math.random()>0.5?-1:1);
+            for(int j = 0; j < nodesBefore; j++) weights[i][j] = random.nextDouble(0.5,1.5) * (Math.random()>0.75?-1:1);
+            bias[i] = random.nextDouble(0.5,1.5) * (Math.random()>0.75?-1:1);
         }
     }
 

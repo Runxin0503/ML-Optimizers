@@ -4,7 +4,7 @@ import java.io.IOException;
 
 public class main {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         double[][] image = new double[70000][784];
         int[] answer = new int[70000];
         try (BufferedReader bufferedReader = new BufferedReader(new FileReader("lib/MNIST DATA.csv"))) {
@@ -23,32 +23,33 @@ public class main {
         }
         System.out.println("LETS START LEARNING!\n--------------------");
 
-        NN NeuralNet = new NN(Activation.ReLU,Activation.softmax,Cost.crossEntropy,784,100,10);
+        NN NeuralNet = new NN(Activation.sigmoid,Activation.softmax,Cost.crossEntropy,784,100,10);
 
-        final int batchSize = 10;
+        final int batchSize = 1;
         double batchCost = 0;
         int batchAccuracy = 0;
-        for (int trainingIndex = 0; trainingIndex < 6300; trainingIndex++) {
-            double[][] trainBatchInputs = new double[10][784];
-            double[][] trainBatchOutputs = new double[10][10];
+        for (int trainingIndex = 0; trainingIndex < 63000; trainingIndex+=batchSize) {
+            double[][] trainBatchInputs = new double[batchSize][784];
+            double[][] trainBatchOutputs = new double[batchSize][10];
             for (int i = 0; i < batchSize; i++) {
-                trainBatchInputs[i] = image[i + trainingIndex * 10];
-                trainBatchOutputs[i][answer[i + trainingIndex * 10]] = 1.0;
+                trainBatchInputs[i] = image[trainingIndex + i];
+                trainBatchOutputs[i][answer[trainingIndex + i]] = 1.0;
             }
 
             NN.learn(NeuralNet,1, 0.9, trainBatchInputs, trainBatchOutputs);
-            for(int i=0;i< trainBatchInputs.length;i++){
+
+            for(int i=0;i< trainBatchInputs.length;i++) {
                 batchCost += NeuralNet.calculateCosts(trainBatchInputs[i], trainBatchOutputs[i]);
                 int guess = 0;
                 double[] guesses = NeuralNet.calculateOutput(trainBatchInputs[i]);
                 for (int j = 0; j < guesses.length; j++) {
                     if(guesses[j] > guesses[guess]) guess = j;
                 }
-                batchAccuracy += (guess == answer[i + trainingIndex * 10]) ? 1 : 0;
+                batchAccuracy += (guess == answer[i + trainingIndex]) ? 1 : 0;
             }
 
-            if (trainingIndex % 700 == 0) {
-                System.out.println("Iterations " + (trainingIndex * 10) + "~" + (trainingIndex*10+7000));
+            if (trainingIndex % 7000 == 0) {
+                System.out.println("Iterations " + (trainingIndex * batchSize) + "~" + (trainingIndex*batchSize+7000));
                 reportPerformance(NeuralNet,image,answer);
                 System.out.println("Train Avg Cost: " + batchCost / 7000);
                 System.out.println("Train Accuracy: " + batchAccuracy / 7000 * 100 + "%\n--------------------");
