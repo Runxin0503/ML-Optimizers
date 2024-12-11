@@ -1,3 +1,5 @@
+package main;
+
 import java.util.Random;
 
 /** A single layer of Neurons. Contains fully connected edges to every neuron in the previous layer */
@@ -28,7 +30,7 @@ public class Layer {
         }
     }
 
-    /** Applies the weights and biases of this Layer to the given input. Returns a new array. */
+    /** Applies the weights and biases of this java.Layer to the given input. Returns a new array. */
     public double[] calculateWeightedOutput(double[] input){
         double[] output = new double[nodes];
 
@@ -64,11 +66,11 @@ public class Layer {
         return activationFunctionDerivative;
     }
 
-    /** Return the number of Neurons contained in this Layer */
+    /** Return the number of Neurons contained in this java.Layer */
     public int getNumNodes() {return nodes;}
 
     /**
-     * Applies the {@code weightGradient} and {@code biasGradient} to the weight and bias of this Layer.
+     * Applies the {@code weightGradient} and {@code biasGradient} to the weight and bias of this java.Layer.
      * <br>Updates the weight and bias's gradient velocity vectors accordingly as well.
      */
     public void applyGradiant(double[][] weightGradient,double[] biasGradient,double adjustedLearningRate,double momentum){

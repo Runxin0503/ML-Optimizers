@@ -1,3 +1,5 @@
+package main;
+
 public class NN {
     /**
      * The number of Input Neurons in this Neural Network
@@ -23,24 +25,24 @@ public class NN {
 
     /**
      * The Gradients for derivative of all Weights with respect to the loss function for all synapses between all layers of this Neural Network.
-     * <br>Layer: The {@link Layer} for which the weights are stored in.
+     * <br>java.Layer: The {@link Layer} for which the weights are stored in.
      * <br>Rows: The neuron {@code n} stored in that layer
      * <br>Columns: The weight deriv of a synapse pointing to {@code n}
      */
     private double[][][] weightGradient;
 
     /**
-     * The Activation Function for hidden layers in this Neural Network
+     * The java.Activation Function for hidden layers in this Neural Network
      */
     private final Activation hiddenAF;
 
     /**
-     * The Activation Function for the output / final layer in this Neural Network
+     * The java.Activation Function for the output / final layer in this Neural Network
      */
     private final Activation outputAF;
 
     /**
-     * The Cost Function for this Neural Network
+     * The java.Cost Function for this Neural Network
      */
     private final Cost costFunction;
 
@@ -99,7 +101,7 @@ public class NN {
             hiddenAF.calculate(result);
             result = layers[i].calculateWeightedOutput(result);
         }
-        for(double v : result) assert Double.isFinite(v);
+        for (double v : result) assert Double.isFinite(v);
         outputAF.calculate(result);
 
         assert result.length == outputNum;
@@ -113,7 +115,7 @@ public class NN {
         double[] output = calculateOutput(input);
         double sum = 0;
 
-        for(double v : output) assert Double.isFinite(v);
+        for (double v : output) assert Double.isFinite(v);
 
         costFunction.calculate(output, expectedOutputs);
 
@@ -130,15 +132,19 @@ public class NN {
      * backpropagation.
      */
     public void backPropagate(double[] input, double[] expectedOutput) {
-        //input -> output -> hiddenAFOutput -> ... -> hiddenAFDeriv -> layerInputSumDeriv
-        double[] hiddenAFOutput = layers[0].calculateWeightedOutput(input);
-        hiddenAF.calculate(hiddenAFOutput);
+        if (layers.length == 1) {
+            recursiveBackPropagation(input, expectedOutput, 0);
+        } else {
+            //input -> output -> hiddenAFOutput -> ... -> hiddenAFDeriv -> layerInputSumDeriv
+            double[] hiddenAFOutput = layers[0].calculateWeightedOutput(input);
+            hiddenAF.calculate(hiddenAFOutput);
 
-        //obtains derivative of input sum at current layer
-        double[] inputSumDeriv = recursiveBackPropagation(hiddenAFOutput, expectedOutput, 1);
-        hiddenAF.derivative(hiddenAFOutput,inputSumDeriv);
+            //obtains derivative of input sum at current layer
+            double[] inputSumDeriv = recursiveBackPropagation(hiddenAFOutput, expectedOutput, 1);
+            hiddenAF.derivative(hiddenAFOutput, inputSumDeriv);
 
-        layers[0].updateGradient(getWeightGradientLayer(0), getBiasGradientLayer(0), inputSumDeriv, input);
+            layers[0].updateGradient(getWeightGradientLayer(0), getBiasGradientLayer(0), inputSumDeriv, input);
+        }
     }
 
     /**
@@ -151,14 +157,14 @@ public class NN {
     private double[] recursiveBackPropagation(double[] input, double[] expectedOutput, int layerIndex) {
         if (layerIndex == layers.length - 1) {
             //input -> output -> outputAF -> outputAFDeriv -> layerInputSumDeriv
-            double[] output = layers[layerIndex].calculateWeightedOutput(input),inputSumDeriv = new double[output.length];
+            double[] output = layers[layerIndex].calculateWeightedOutput(input), inputSumDeriv = new double[output.length];
             outputAF.calculate(output);
             System.arraycopy(output, 0, inputSumDeriv, 0, output.length);
 
             costFunction.derivative(inputSumDeriv, expectedOutput);
-            outputAF.derivative(output,inputSumDeriv);
+            outputAF.derivative(output, inputSumDeriv);
 
-            return layers[layerIndex].updateGradient(getWeightGradientLayer(layerIndex),getBiasGradientLayer(layerIndex), inputSumDeriv, input);
+            return layers[layerIndex].updateGradient(getWeightGradientLayer(layerIndex), getBiasGradientLayer(layerIndex), inputSumDeriv, input);
         }
 
         //input -> output -> hiddenAFOutput -> ... -> hiddenAFDeriv -> layerInputSumDeriv
@@ -167,7 +173,7 @@ public class NN {
 
         //obtains derivative of input sum at current layer
         double[] inputSumDeriv = recursiveBackPropagation(hiddenAFOutput, expectedOutput, layerIndex + 1);
-        hiddenAF.derivative(hiddenAFOutput,inputSumDeriv);
+        hiddenAF.derivative(hiddenAFOutput, inputSumDeriv);
 
         return layers[layerIndex].updateGradient(getWeightGradientLayer(layerIndex), getBiasGradientLayer(layerIndex), inputSumDeriv, input);
     }
@@ -178,7 +184,7 @@ public class NN {
         biasGradient = new double[layers.length][];
         for (int i = 0; i < layers.length; i++) {
             int nodes = layers[i].getNumNodes();
-            weightGradient[i] = new double[nodes][(i==0 ? inputNum : layers[i-1].getNumNodes())];
+            weightGradient[i] = new double[nodes][(i == 0 ? inputNum : layers[i - 1].getNumNodes())];
             biasGradient[i] = new double[nodes];
         }
     }
@@ -187,8 +193,8 @@ public class NN {
      * Used as an alternative to making the entire {@link #weightGradient} a volatile variable.
      * <br>Takes up slightly more memory, but allows multiple threads to access different arrays in weightGradient
      */
-    private double[][] getWeightGradientLayer(int layerIndex){
-        synchronized (weightGradient[layerIndex]){
+    private double[][] getWeightGradientLayer(int layerIndex) {
+        synchronized (weightGradient[layerIndex]) {
             return weightGradient[layerIndex];
         }
     }
@@ -197,8 +203,8 @@ public class NN {
      * Used as an alternative to making the entire {@link #biasGradient} a volatile variable.
      * <br>Takes up slightly more memory, but allows multiple threads to access different arrays in biasGradient
      */
-    private double[] getBiasGradientLayer(int layerIndex){
-        synchronized (biasGradient[layerIndex]){
+    private double[] getBiasGradientLayer(int layerIndex) {
+        synchronized (biasGradient[layerIndex]) {
             return biasGradient[layerIndex];
         }
     }
@@ -210,13 +216,13 @@ public class NN {
      */
     private void applyGradient(double adjustedLearningRate, double momentum) {
         assert Double.isFinite(adjustedLearningRate);
-        for(int i=0;i<layers.length;i++){
-            for(double[] dd : weightGradient[i])
-                for(double d : dd)
+        for (int i = 0; i < layers.length; i++) {
+            for (double[] dd : weightGradient[i])
+                for (double d : dd)
                     assert Double.isFinite(d);
-            for(double d : biasGradient[i])
+            for (double d : biasGradient[i])
                 assert Double.isFinite(d);
-            layers[i].applyGradiant(weightGradient[i],biasGradient[i],adjustedLearningRate,momentum);
+            layers[i].applyGradiant(weightGradient[i], biasGradient[i], adjustedLearningRate, momentum);
         }
     }
 }

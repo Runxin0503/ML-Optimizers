@@ -1,8 +1,10 @@
+package main;
+
 import java.util.Arrays;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-/** Activation Function enum containing regular and derivative functions of commonly-used Activation Functions */
+/** java.Activation Function enum containing regular and derivative functions of commonly-used java.Activation Functions */
 public enum Activation {
     none(input -> {
     },(output,gradient) -> {
@@ -56,19 +58,19 @@ public enum Activation {
         this.derivativeFunction = derivativeFunction;
     }
 
-    /** Transform the given input array to the result of applying this Activation Function on that array*/
+    /** Transform the given input array to the result of applying this java.Activation Function on that array*/
     public void calculate(double[] input) {
         double[] copy = new double[input.length];
         System.arraycopy(input,0,copy,0,input.length);
-        for(double v : input) assert Double.isFinite(v) : "Attempted to input invalid values into Activation Function";
+        for(double v : input) assert Double.isFinite(v) : "Attempted to input invalid values into Activation Function - " + Arrays.toString(copy);
         this.function.accept(input);
-        for(double v : input) assert Double.isFinite(v) : "Activation Function returning invalid values from input - " + Arrays.toString(copy);
+        for(double v : input) assert Double.isFinite(v) : "java.Activation Function returning invalid values from input - " + Arrays.toString(copy);
     }
 
-    /** Transform the given {@code gradient} by multiplying each element with the result of applying the derivative of this Activation Function onto the {@code output} array */
+    /** Transform the given {@code gradient} by multiplying each element with the result of applying the derivative of this java.Activation Function onto the {@code output} array */
     public void derivative(double[] output,double[] gradient) {
         for(double v : gradient) assert Double.isFinite(v) : "Attempted to input invalid values into Deriv of Activation Function";
         this.derivativeFunction.accept(output,gradient);
-        for(double v : gradient) assert Double.isFinite(v) : "Deriv of Activation Function returning invalid values";
+        for(double v : gradient) assert Double.isFinite(v) : "Deriv of java.Activation Function returning invalid values";
     }
 }

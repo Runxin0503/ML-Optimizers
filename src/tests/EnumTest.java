@@ -1,6 +1,10 @@
-import org.junit.jupiter.api.Assertions;
+package tests;
+
 import org.junit.jupiter.api.Test;
 
+import main.Activation;
+import main.Cost;
+import main.NN;
 import java.util.Arrays;
 import java.util.function.Supplier;
 
@@ -28,12 +32,12 @@ public class EnumTest {
         NN NeuralNet = new NN(null, Activation.softmax, Cost.crossEntropy, 784, 10);
         double[] ones = new double[10];
         Arrays.fill(ones, 1);
-        assertAlmostEquals(-10 * Math.log(0.9), NeuralNet.calculateCosts(exampleData, new double[10]));
-        assertAlmostEquals(-10 * Math.log(0.1), NeuralNet.calculateCosts(exampleData, ones));
+        assertEquals(-10 * Math.log(0.9), NeuralNet.calculateCosts(exampleData, new double[10]),1e-6);
+        assertEquals(-10 * Math.log(0.1), NeuralNet.calculateCosts(exampleData, ones),1e-6);
     }
 
     /**
-     * Tests Activation Function none
+     * Tests java.Activation Function none
      */
     @Test
     void noneAFTest() {
@@ -44,7 +48,7 @@ public class EnumTest {
     }
 
     /**
-     * Tests Activation Function ReLU
+     * Tests java.Activation Function ReLU
      */
     @Test
     void ReLUTest() {
@@ -52,7 +56,7 @@ public class EnumTest {
     }
 
     /**
-     * Tests Activation Function Sigmoid
+     * Tests java.Activation Function Sigmoid
      */
     @Test
     void SigmoidTest() {
@@ -63,7 +67,7 @@ public class EnumTest {
     }
 
     /**
-     * Tests Activation Function Tanh
+     * Tests java.Activation Function Tanh
      */
     @Test
     void TanhTest() {
@@ -74,7 +78,7 @@ public class EnumTest {
     }
 
     /**
-     * Tests Activation Function LeakyReLU
+     * Tests java.Activation Function LeakyReLU
      */
     @Test
     void LeakyReLUTest() {
@@ -82,7 +86,7 @@ public class EnumTest {
     }
 
     /**
-     * Tests Activation Function softmax
+     * Tests java.Activation Function softmax
      */
     @Test
     void softmaxTest() {
@@ -90,17 +94,6 @@ public class EnumTest {
         NN NeuralNet = new NN(Activation.none, Activation.softmax, null, 784, 1);
 
         assertArrayEquals(new double[]{1}, NeuralNet.calculateOutput(exampleData));
-    }
-
-    public static void assertAlmostEquals(double expected, double actual,double threshold) {
-        assertTrue(Math.abs(expected - actual) < threshold);
-    }
-
-    /**
-     * Similar to an {@link Assertions#assertEquals} but tests if two numbers are close enough, accounting for computer math errors
-     */
-    public static void assertAlmostEquals(double expected, double actual){
-        assertAlmostEquals(expected, actual, 1e-6);
     }
 
     public static double[] getRandomDoubleArr(int length, Supplier<Double> randomNumberGenerator) {
