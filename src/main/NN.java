@@ -98,11 +98,10 @@ public class NN {
 
         double[] result = layers[0].calculateWeightedOutput(input);
         for (int i = 1; i < layers.length; i++) {
-            hiddenAF.calculate(result);
-            result = layers[i].calculateWeightedOutput(result);
+            result = layers[i].calculateWeightedOutput(hiddenAF.calculate(result));
         }
-        for (double v : result) assert Double.isFinite(v);
-        outputAF.calculate(result);
+
+        result = outputAF.calculate(result);
 
         assert result.length == outputNum;
         return result;
@@ -117,9 +116,9 @@ public class NN {
 
         for (double v : output) assert Double.isFinite(v);
 
-        costFunction.calculate(output, expectedOutputs);
+        double[] costs = costFunction.calculate(output, expectedOutputs);
 
-        for (double v : output) {
+        for (double v : costs) {
             sum += v;
         }
 
