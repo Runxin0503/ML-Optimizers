@@ -75,11 +75,10 @@ public class BackPropTest {
     /** Test Procedure: XOR. When both inputs are 1,1 or 0,0 predict 0, otherwise predict 1 */
     @Test
     void trainSemiComplexNeuralNetwork() {
-        final NN semiComplexNN = new NN(Activation.ReLU,Activation.sigmoid,Cost.crossEntropy,2,2,1);
-        final int iterations = 10_000;
+        final NN semiComplexNN = new NN(Activation.sigmoid,Activation.sigmoid,Cost.crossEntropy,2,1,1);
 
-        for(int i=0;i<iterations;i++) {
-            double[] testInput = new double[]{Math.round(Math.random()),Math.round(Math.random())};
+        final double[][] allTestInputs = new double[][]{{1,1},{0,1},{1,0},{0,0}};
+        for(double[] testInput : allTestInputs) {
             double[] testOutput = new double[1];
             testOutput[0] = testInput[0]==testInput[1] ? 0 : 1;
 //            System.out.println(Arrays.toString(testInput));
@@ -100,7 +99,6 @@ public class BackPropTest {
 
         for(int i=0;i<expectedOutputs.length;i++){
             double[] actualOutput = actualOutputs[i],expectedOutput = expectedOutputs[i];
-            System.out.println(Arrays.toString(actualOutput));
 
             for(int j=0;j<actualOutput.length;j++)
                 assertEquals(expectedOutput[j],actualOutput[j],threshold);

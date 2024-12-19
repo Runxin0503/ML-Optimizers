@@ -135,15 +135,7 @@ public class NN {
         if (layers.length == 1) {
             recursiveBackPropagation(input, expectedOutput, 0);
         } else {
-            //input -> output -> hiddenAFOutput -> ... -> hiddenAFDeriv -> layerInputSumDeriv
-            double[] hiddenAFOutput = layers[0].calculateWeightedOutput(input);
-            hiddenAF.calculate(hiddenAFOutput);
-
-            //obtains derivative of input sum at current layer
-            double[] inputSumDeriv = recursiveBackPropagation(hiddenAFOutput, expectedOutput, 1);
-            hiddenAF.derivative(hiddenAFOutput, inputSumDeriv);
-
-            layers[0].updateGradient(getWeightGradientLayer(0), getBiasGradientLayer(0), inputSumDeriv, input);
+            //todo input -> output -> hiddenAFOutput -> ... -> hiddenAFDeriv -> layerInputSumDeriv
         }
     }
 
@@ -156,26 +148,10 @@ public class NN {
      */
     private double[] recursiveBackPropagation(double[] input, double[] expectedOutput, int layerIndex) {
         if (layerIndex == layers.length - 1) {
-            //input -> output -> outputAF -> outputAFDeriv -> layerInputSumDeriv
-            double[] output = layers[layerIndex].calculateWeightedOutput(input), inputSumDeriv = new double[output.length];
-            outputAF.calculate(output);
-            System.arraycopy(output, 0, inputSumDeriv, 0, output.length);
-
-            costFunction.derivative(inputSumDeriv, expectedOutput);
-            outputAF.derivative(output, inputSumDeriv);
-
-            return layers[layerIndex].updateGradient(getWeightGradientLayer(layerIndex), getBiasGradientLayer(layerIndex), inputSumDeriv, input);
+            //todo input -> output -> outputAF -> outputAFDeriv -> layerInputSumDeriv
         }
 
-        //input -> output -> hiddenAFOutput -> ... -> hiddenAFDeriv -> layerInputSumDeriv
-        double[] hiddenAFOutput = layers[layerIndex].calculateWeightedOutput(input);
-        hiddenAF.calculate(hiddenAFOutput);
-
-        //obtains derivative of input sum at current layer
-        double[] inputSumDeriv = recursiveBackPropagation(hiddenAFOutput, expectedOutput, layerIndex + 1);
-        hiddenAF.derivative(hiddenAFOutput, inputSumDeriv);
-
-        return layers[layerIndex].updateGradient(getWeightGradientLayer(layerIndex), getBiasGradientLayer(layerIndex), inputSumDeriv, input);
+        //todo input -> output -> hiddenAFOutput -> ... -> hiddenAFDeriv -> layerInputSumDeriv
     }
 
     /** Re-initializes the weight and bias gradients, effectively setting all contained values to 0 */

@@ -53,17 +53,7 @@ public class Layer {
      * @return the array of derivatives of previous layer's activation function with respect to loss function
      */
     public double[] updateGradient(double[][] weightGradient, double[] biasGradiant, double[] layerInputSumDeriv, double[] latestInput){
-        double[] activationFunctionDerivative = new double[weights[0].length];
-        for(int i=0;i<nodes;i++){
-            for(int j=0;j<weights[0].length;j++){
-                assert Double.isFinite(latestInput[j]);
-                assert Double.isFinite(layerInputSumDeriv[i]);
-                weightGradient[i][j] += latestInput[j] * layerInputSumDeriv[i];
-                activationFunctionDerivative[j] += layerInputSumDeriv[i] * weights[i][j];
-            }
-            biasGradiant[i] += layerInputSumDeriv[i];
-        }
-        return activationFunctionDerivative;
+        //todo do dis
     }
 
     /** Return the number of Neurons contained in this java.Layer */
