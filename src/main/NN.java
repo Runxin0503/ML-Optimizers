@@ -131,11 +131,7 @@ public class NN {
      * backpropagation.
      */
     public void backPropagate(double[] input, double[] expectedOutput) {
-        if (layers.length == 1) {
-            recursiveBackPropagation(input, expectedOutput, 0);
-        } else {
-            //todo input -> output -> hiddenAFOutput -> ... -> hiddenAFDeriv -> layerInputSumDeriv
-        }
+        recursiveBackPropagation(input,expectedOutput,0);
     }
 
     /**
@@ -143,14 +139,28 @@ public class NN {
      * input sum of all neurons in that layer.
      * <br>{@code expectedOutput} is passed down the recursive calls until output layer is reached
      *
-     * @return array containing derivative of previous layer's activation function with respect to loss function
+     * @return array of da/dC or derivative of {@code layerIndex-1}'th layer's Activation Function with respective to Loss Function
      */
-    private double[] recursiveBackPropagation(double[] input, double[] expectedOutput, int layerIndex) {
+    private double[] recursiveBackPropagation(double[] x, double[] expectedOutput, int layerIndex) {
         if (layerIndex == layers.length - 1) {
-            //todo input -> output -> outputAF -> outputAFDeriv -> layerInputSumDeriv
+            // x -> z -> a -> da/dC -> dz/dC -> da_-1/dC
+            double[] z = layers[layerIndex].calculateWeightedOutput(x);
+            double[] a = outputAF.calculate(z);
+
+            double[] da_dC = costFunction.derivative(a,expectedOutput);
+            double[] dz_dC = outputAF.derivative(z,da_dC);
+
+            return layers[layerIndex].updateGradient(getWeightGradientLayer(layerIndex),getBiasGradientLayer(layerIndex),dz_dC,x);
         }
 
-        //todo input -> output -> hiddenAFOutput -> ... -> hiddenAFDeriv -> layerInputSumDeriv
+        // x -> z -> a -> ... -> da/dC -> dz/dC -> da_-1/dC
+        double[] z = layers[layerIndex].calculateWeightedOutput(x);
+        double[] a = hiddenAF.calculate(z);
+
+        double[] da_dC = recursiveBackPropagation(a, expectedOutput, layerIndex + 1);
+        double[] dz_dC = hiddenAF.derivative(z,da_dC);
+
+        return layers[layerIndex].updateGradient(getWeightGradientLayer(layerIndex),getBiasGradientLayer(layerIndex),dz_dC,x);
     }
 
     /** Re-initializes the weight and bias gradients, effectively setting all contained values to 0 */
@@ -165,8 +175,8 @@ public class NN {
     }
 
     /**
-     * Used as an alternative to making the entire {@link #weightGradient} a volatile variable.
-     * <br>Takes up slightly more memory, but allows multiple threads to access different arrays in weightGradient
+     * Locks {@code weightGradient[layerIndex]} behind its mutex, giving access to the corresponding biasGradient as well.
+     * <br>Takes up slightly more memory, but allows multiple threads to access different arrays in both weightGradient and biasGradient
      */
     private double[][] getWeightGradientLayer(int layerIndex) {
         synchronized (weightGradient[layerIndex]) {
@@ -175,11 +185,11 @@ public class NN {
     }
 
     /**
-     * Used as an alternative to making the entire {@link #biasGradient} a volatile variable.
-     * <br>Takes up slightly more memory, but allows multiple threads to access different arrays in biasGradient
+     * Locks {@code biasGradient[layerIndex]} behind the corresponding weightGradient array's mutex.
+     * <br>Takes up slightly more memory, but allows multiple threads to access different arrays in both biasGradient and weightGradient
      */
     private double[] getBiasGradientLayer(int layerIndex) {
-        synchronized (biasGradient[layerIndex]) {
+        synchronized (weightGradient[layerIndex]) {
             return biasGradient[layerIndex];
         }
     }

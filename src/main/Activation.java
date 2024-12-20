@@ -1,9 +1,7 @@
 package main;
 
 import java.util.Arrays;
-import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /** Activation Function enum containing regular and derivative functions of commonly-used Activation Functions */
@@ -59,21 +57,29 @@ public enum Activation {
     }),
     softmax(input -> {
         double[] output = new double[input.length];
-        double latestInputSum = 0,max = Integer.MIN_VALUE;
+        double latestInputSum = 0,max = Double.MIN_VALUE;
         for (double num : input) max = Math.max(max, num);
         for (double num : input) latestInputSum += Math.exp(num - max);
         for (int i = 0; i < input.length; i++) output[i] = Math.exp(input[i] - max) / latestInputSum;
         return output;
     }, (input, gradient) -> {
         double[] output = new double[input.length];
-        for (int i = 0; i < input.length; i++) {
-            double val = 0;
-            for (int j = 0; j < input.length; j++) {
-                if (i == j) val += gradient[j] * input[i] * (1 - input[i]);
-                else val += gradient[j] * (-input[i] * input[j]);
-            }
-            output[i] = val;
+        double[] softmaxOutput = new double[input.length];
+        double latestInputSum = 0,max = Double.MIN_VALUE;
+        for (double num : input) max = Math.max(max, num);
+        for (double num : input) latestInputSum += Math.exp(num - max);
+        for (int i = 0; i < input.length; i++) softmaxOutput[i] = Math.exp(input[i] - max) / latestInputSum;
+
+        // Compute the gradient using the vectorized form
+        double dotProduct = 0.0;
+        for (int i = 0; i < softmaxOutput.length; i++) {
+            dotProduct += softmaxOutput[i] * gradient[i];
         }
+
+        for (int i = 0; i < softmaxOutput.length; i++) {
+            output[i] = softmaxOutput[i] * (gradient[i] - dotProduct);
+        }
+
         return output;
     });
 
@@ -88,17 +94,18 @@ public enum Activation {
     public double[] calculate(double[] input) {
         for(double v : input) assert Double.isFinite(v) : "Attempted to input invalid values into Activation Function";
         double[] output = this.function.apply(input);
-        for(double v : output) assert Double.isFinite(v) : "Activation Function returning invalid values from input - " + Arrays.toString(input);
+        for(double v : output) assert Double.isFinite(v) : "Activation Function returning invalid values " + Arrays.toString(input);
         return output;
     }
 
     /**
-     * Returns the result of multiplying each element in {@code gradient} with AF'(x) for every x in {@code input}
+     * Effect: multiplies each element in {@code da_dC[i]} with their corresponding element {@code AF'(z[i])}
+     * @return {@code dz_dC}
      */
-    public double[] derivative(double[] input,double[] gradient) {
-        for(double v : gradient) assert Double.isFinite(v) : "Attempted to input invalid values into Deriv of Activation Function";
-        double[] newGradient = this.derivativeFunction.apply(input,gradient);
-        for(double v : newGradient) assert Double.isFinite(v) : "Deriv of Activation Function returning invalid values";
+    public double[] derivative(double[] z, double[] da_dC) {
+        for(double v : da_dC) assert Double.isFinite(v) : "Attempted to input invalid values into Deriv of Activation Function";
+        double[] newGradient = this.derivativeFunction.apply(z, da_dC);
+        for(double v : newGradient) assert Double.isFinite(v) : "Deriv of Activation Function returning invalid values "  + Arrays.toString(z) + "  " + Arrays.toString(da_dC);
         return newGradient;
     }
 }

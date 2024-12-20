@@ -50,10 +50,18 @@ public class Layer {
      * calculates and shifts the given weight and bias gradients.
      * @param weightGradient Rows: The neuron n stored in that layer <br>Columns: The weight deriv of a synapse pointing to n
      * @param biasGradiant Index: The bias deriv of a node in that layer
-     * @return the array of derivatives of previous layer's activation function with respect to loss function
+     * @return da_dC where a is the activation function of the layer before this one
      */
-    public double[] updateGradient(double[][] weightGradient, double[] biasGradiant, double[] layerInputSumDeriv, double[] latestInput){
-        //todo do dis
+    public double[] updateGradient(double[][] weightGradient, double[] biasGradiant, double[] dz_dC, double[] x){
+        double[] da_dC = new double[weightGradient[0].length];
+        for(int i=0;i<nodes;i++){
+            for(int j=0;j<weightGradient[0].length;j++){
+                weightGradient[i][j] += dz_dC[i] * x[j];
+                da_dC[j] += dz_dC[i] * weights[i][j];
+            }
+            biasGradiant[i] += dz_dC[i];
+        }
+        return da_dC;
     }
 
     /** Return the number of Neurons contained in this java.Layer */
