@@ -3,33 +3,33 @@ package main;
 public class NN {
     /**
      * The number of Input Neurons in this Neural Network
-     */
-    private final int inputNum;
+     */ //made public for testing purposes
+    public final int inputNum;
 
     /**
      * The number of Output Neurons in this Neural Network
-     */
-    private final int outputNum;
+     */ //made public for testing purposes
+    public final int outputNum;
 
     /**
      * The array of Layers in this Neural Network
-     */
-    private final Layer[] layers;
+     */ //made public for testing purposes
+    public final Layer[] layers;
 
     /**
      * The Gradients for derivative of all Biases with respect to the loss function for all neurons in all layers of this Neural Network
      * <br>Rows: The {@link Layer} for which the weights are stored in.
      * <br>Columns: The bias deriv of a node in that layer
-     */
-    private double[][] biasGradient;
+     */ //made public for testing purposes
+    public double[][] biasGradient;
 
     /**
      * The Gradients for derivative of all Weights with respect to the loss function for all synapses between all layers of this Neural Network.
      * <br>java.Layer: The {@link Layer} for which the weights are stored in.
      * <br>Rows: The neuron {@code n} stored in that layer
      * <br>Columns: The weight deriv of a synapse pointing to {@code n}
-     */
-    private double[][][] weightGradient;
+     */ //made public for testing purposes
+    public double[][][] weightGradient;
 
     /**
      * The java.Activation Function for hidden layers in this Neural Network
@@ -189,8 +189,8 @@ public class NN {
     /**
      * Locks {@code biasGradient[layerIndex]} behind the corresponding weightGradient array's mutex.
      * <br>Takes up slightly more memory, but allows multiple threads to access different arrays in both biasGradient and weightGradient
-     */
-    private double[] getBiasGradientLayer(int layerIndex) {
+     */ //made public for testing purposes
+    public double[] getBiasGradientLayer(int layerIndex) {
         synchronized (weightGradient[layerIndex]) {
             return biasGradient[layerIndex];
         }

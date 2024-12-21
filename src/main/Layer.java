@@ -6,17 +6,19 @@ import java.util.Random;
 public class Layer {
 
     /** The number of Neurons in this layer */
-    private final int nodes;
+    //made public for testing purposes
+    public final int nodes;
 
     /**
      * A 2D matrix of weights
      * <br>Rows: The neuron {@code n} in this layer
      * <br>Columns: The weight of a synapse pointing to {@code n}
-     */
-    private final double[][] weights;
+     */ //made public for testing purposes
+    public final double[][] weights;
 
     /** The bias of each neuron in this layer */
-    private final double[] bias;
+    //made public for testing purposes
+    public final double[] bias;
 
     public Layer(int nodesBefore,int nodes) {
         this.nodes = nodes;
