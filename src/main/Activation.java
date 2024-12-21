@@ -26,12 +26,12 @@ public enum Activation {
     }),
     sigmoid(input -> {
         double[] output = new double[input.length];
-        for (int i = 0; i < input.length; i++) output[i] = 1 / (1 + Math.pow(Math.E, -input[i]));
+        for (int i = 0; i < input.length; i++) output[i] = 1 / (1 + Math.exp(-input[i]));
         return output;
     }, (input,gradient) -> {
         double[] output = new double[input.length];
         for (int i = 0; i < input.length; i++){
-            double a = 1/(1+Math.pow(Math.E,-input[i]));
+            double a = 1/(1+Math.exp(-input[i]));
             output[i] = gradient[i] * a * (1-a);
         }
         return output;

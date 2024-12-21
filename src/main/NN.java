@@ -51,6 +51,8 @@ public class NN {
      * <br>Uses SGD with momentum as training algorithm, requires Learning Rate and Momentum hyper-parameter.
      */
     public static void learn(NN NN, double learningRate, double momentum, double[][] testCaseInputs, double[][] testCaseOutputs) {
+        assert testCaseInputs.length == testCaseOutputs.length;
+        for(int i = 0; i < testCaseInputs.length; ++i) assert testCaseInputs[i].length == NN.inputNum && testCaseOutputs[i].length == NN.outputNum;
         //prevents other threads from calling learn on the same Neural Network
         synchronized (NN) {
             NN.clearGradient();
