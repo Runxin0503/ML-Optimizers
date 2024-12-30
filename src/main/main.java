@@ -26,7 +26,7 @@ public class main {
         }
         System.out.println("LETS START LEARNING!\n--------------------");
 
-        NN NeuralNet = new NN(Activation.sigmoid, Activation.softmax, Cost.crossEntropy, 784, 100, 10);
+        NN NeuralNet = new NN(Activation.sigmoid, Activation.softmax, Cost.crossEntropy, 784, 200, 10);
 
         final int batchSize = 1;
         for (int trainingIndex = 0; trainingIndex < 63000; trainingIndex += batchSize) {
@@ -37,7 +37,7 @@ public class main {
                 trainBatchOutputs[i][answer[trainingIndex + i]] = 1.0;
             }
 
-            NN.learn(NeuralNet, 1, 0.9, trainBatchInputs, trainBatchOutputs);
+            NN.learn(NeuralNet, 0.02, 0.9, trainBatchInputs, trainBatchOutputs);
 
             if (trainingIndex % 7000 == 0) {
                 System.out.println("Iterations " + (trainingIndex * batchSize + 1));
@@ -58,7 +58,7 @@ public class main {
             batchCost += NeuralNet.calculateCosts(image[i], expectedOutput);
             if (evaluateOutput(NeuralNet.calculateOutput(image[i]), answer[i])) batchAccuracy++;
         }
-        System.out.println("Train Avg java.Cost: " + batchCost / currentTrainingIndex);
+        System.out.println("Train Avg Cost: " + batchCost / currentTrainingIndex);
         System.out.println("Train Accuracy: " + batchAccuracy / currentTrainingIndex * 100 + "%");
     }
 
@@ -76,7 +76,7 @@ public class main {
             }
             correct += (guess == answer[k]) ? 1 : 0;
         }
-        System.out.println("Test Avg java.Cost: " + cost / 7000);
+        System.out.println("Test Avg Cost: " + cost / 7000);
         System.out.println("Test Accuracy: " + correct / 7000.0 * 100 + "%");
     }
 

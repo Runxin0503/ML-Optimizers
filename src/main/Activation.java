@@ -12,7 +12,8 @@ public enum Activation {
         return output;
     },(input,gradient) -> {
         double[] output = new double[input.length];
-        for(int i=0;i<input.length;i++) output[i] = input[i] * gradient[i];
+        //input will always be 1 with respect to output
+        System.arraycopy(gradient, 0, output, 0, input.length);
         return output;
     }),
     ReLU(input -> {
@@ -39,16 +40,19 @@ public enum Activation {
     tanh(input -> {
         double[] output = new double[input.length];
         for (int i = 0; i < input.length; i++)
-            output[i] = (Math.pow(Math.E, input[i]) - Math.pow(Math.E, -input[i])) / (Math.pow(Math.E, input[i]) + Math.pow(Math.E, -input[i]));
+            output[i] = Math.tanh(input[i]);
         return output;
     },(input,gradient) -> {
         double[] output = new double[input.length];
-        for (int i = 0; i < input.length; i++) output[i] = gradient[i] * (1-Math.pow((Math.pow(Math.E, input[i])-Math.pow(Math.E,-input[i]))/(Math.pow(Math.E, input[i])+Math.pow(Math.E,-input[i])),2));
+        for (int i = 0; i < input.length; i++) {
+            double tanhValue = Math.tanh(input[i]);
+            output[i] = gradient[i] * (1-tanhValue*tanhValue);
+        }
         return output;
     }),
-    leakyReLU(input -> {
+    LeakyReLU(input -> {
         double[] output = new double[input.length];
-        for (int i = 0; i < input.length; i++) output[i] = Math.max(input[i], 0.1 * input[i]);
+        for (int i = 0; i < input.length; i++) output[i] = input[i] > 0 ? input[i] : 0.1 * input[i];
         return output;
     }, (input, gradient) -> {
         double[] output = new double[input.length];
@@ -92,7 +96,7 @@ public enum Activation {
 
     /** Returns the result of AF(x) for every x in {@code input} array*/
     public double[] calculate(double[] input) {
-        for(double v : input) assert Double.isFinite(v) : "Attempted to input invalid values into Activation Function";
+        for(double v : input) assert Double.isFinite(v) : "Attempted to input invalid values into Activation Function " + Arrays.toString(input);
         double[] output = this.function.apply(input);
         for(double v : output) assert Double.isFinite(v) : "Activation Function returning invalid values " + Arrays.toString(input);
         return output;
@@ -103,9 +107,9 @@ public enum Activation {
      * @return {@code dz_dC}
      */
     public double[] derivative(double[] z, double[] da_dC) {
-        for(double v : da_dC) assert Double.isFinite(v) : "Attempted to input invalid values into Deriv of Activation Function";
+        for(double v : da_dC) assert Double.isFinite(v) : "Attempted to input invalid values into Deriv of Activation Function " + Arrays.toString(z) + "  " + Arrays.toString(da_dC);
         double[] newGradient = this.derivativeFunction.apply(z, da_dC);
-        for(double v : newGradient) assert Double.isFinite(v) : "Deriv of Activation Function returning invalid values "  + Arrays.toString(z) + "  " + Arrays.toString(da_dC);
+        for(double v : newGradient) assert Double.isFinite(v) : "Deriv of Activation Function returning invalid values " + Arrays.toString(z) + "  " + Arrays.toString(da_dC);
         return newGradient;
     }
 }

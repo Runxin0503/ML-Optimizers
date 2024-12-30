@@ -37,7 +37,7 @@ public class EnumTest {
     }
 
     /**
-     * Tests java.Activation Function none
+     * Tests java.Activation Function None
      */
     @Test
     void noneAFTest() {

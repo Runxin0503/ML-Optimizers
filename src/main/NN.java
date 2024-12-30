@@ -1,5 +1,7 @@
 package main;
 
+import java.util.Random;
+
 public class NN {
     /**
      * The number of Input Neurons in this Neural Network
@@ -61,7 +63,7 @@ public class NN {
             for (int i = 0; i < testCaseInputs.length; i++) {
                 double[] testCaseInput = testCaseInputs[i];
                 double[] testCaseOutput = testCaseOutputs[i];
-                workerThreads[i] = new Thread(() -> NN.backPropagate(testCaseInput, testCaseOutput));
+                workerThreads[i] = new Thread(null,() -> NN.backPropagate(testCaseInput, testCaseOutput),"WorkerThread");
                 workerThreads[i].start();
             }
 
@@ -85,8 +87,9 @@ public class NN {
         this.outputAF = outputAF;
         this.costFunction = costFunction;
 
+        Random rand = new Random();
         for (int i = 1; i < layers.length; i++)
-            this.layers[i - 1] = new Layer(layers[i - 1], layers[i]);
+            this.layers[i - 1] = new Layer(layers[i - 1], layers[i],()->(rand.nextGaussian(0,2.0/(inputNum+outputNum))));
 
         clearGradient();
     }
@@ -206,9 +209,11 @@ public class NN {
         for (int i = 0; i < layers.length; i++) {
             for (double[] dd : weightGradient[i])
                 for (double d : dd)
-                    assert Double.isFinite(d);
+                    assert Double.isFinite(d) : "weightGradient has invalid values";
+
             for (double d : biasGradient[i])
-                assert Double.isFinite(d);
+                assert Double.isFinite(d) : "biasGradient has invalid values";
+
             layers[i].applyGradiant(weightGradient[i], biasGradient[i], adjustedLearningRate, momentum);
         }
     }

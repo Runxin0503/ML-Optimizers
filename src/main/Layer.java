@@ -1,6 +1,6 @@
 package main;
 
-import java.util.Random;
+import java.util.function.Supplier;
 
 /** A single layer of Neurons. Contains fully connected edges to every neuron in the previous layer */
 public class Layer {
@@ -20,15 +20,14 @@ public class Layer {
     //made public for testing purposes
     public final double[] bias;
 
-    public Layer(int nodesBefore,int nodes) {
+    public Layer(int nodesBefore, int nodes, Supplier<Double> valueSupplier) {
         this.nodes = nodes;
         this.bias = new double[nodes];
         this.weights = new double[nodes][nodesBefore];
 
-        Random random = new Random();
         for(int i = 0; i < nodes; i++) {
-            for(int j = 0; j < nodesBefore; j++) weights[i][j] = random.nextDouble(0.5,1.5) * (Math.random()>0.75?-1:1);
-            bias[i] = random.nextDouble(0.5,1.5) * (Math.random()>0.75?-1:1);
+            for(int j = 0; j < nodesBefore; j++) weights[i][j] = valueSupplier.get();
+            bias[i] = valueSupplier.get();
         }
     }
 
@@ -58,9 +57,20 @@ public class Layer {
         double[] da_dC = new double[weightGradient[0].length];
         for(int i=0;i<nodes;i++){
             for(int j=0;j<weightGradient[0].length;j++){
+                assert Double.isFinite(weightGradient[i][j]);
+                assert Double.isFinite(dz_dC[i]);
+                assert Double.isFinite(x[j]);
+
                 weightGradient[i][j] += dz_dC[i] * x[j];
+                assert Double.isFinite(weightGradient[i][j]) : "weightGradient[i][j]("+weightGradient[i][j]+") + dz_dC[i]("+dz_dC[i]+") * x[j]("+x[j]+") is equal to an invalid (Infinite) value";
+
+                assert Double.isFinite(da_dC[j]);
+
                 da_dC[j] += dz_dC[i] * weights[i][j];
             }
+            assert Double.isFinite(biasGradiant[i]);
+            assert Double.isFinite(dz_dC[i]);
+
             biasGradiant[i] += dz_dC[i];
         }
         return da_dC;
