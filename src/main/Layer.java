@@ -41,6 +41,7 @@ public class Layer {
                 output[i] += weights[i][j]*input[j];
             }
             output[i] += bias[i];
+            assert Double.isFinite(output[i]) : "Weighted output has reached Infinity";
         }
 
         return output;

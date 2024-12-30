@@ -156,7 +156,7 @@ public class BackPropTest {
         }
         System.out.println("totalCost: "+totalCost);
     }
-
+    public static boolean stop = false;
     @Test
     void train2ndPolynomialFunctions(){
         Random rand = new Random();
@@ -168,7 +168,7 @@ public class BackPropTest {
         final int bound = 10;
 
         for(int i=0;i<iterations;i++) {
-            double x = Math.random()*bound * (Math.signum(Math.random()-0.5));
+            double x = 2.0*i/iterations*bound-bound;
             double[] testCaseInput = new double[]{x};
             double[] testOutput = new double[]{LinearFunction.apply(x)};
 
@@ -190,8 +190,9 @@ public class BackPropTest {
 
         double totalCost = 0;
         final int testIterations = 10000;
+        final double testBound = 10000;
         for(int i=0;i<testIterations;i++) {
-            double x = i*bound*1.0/testIterations;
+            double x = i*testBound/testIterations;
             System.out.println("LinearFunction.apply(x) " + LinearFunction.apply(x));
             System.out.println("Neural Net Output "+Arrays.toString(NeuralNet.calculateOutput(new double[]{x})));
             System.out.println("Neural Net COST " + NeuralNet.calculateCosts(new double[]{x},new double[]{LinearFunction.apply(x)}));

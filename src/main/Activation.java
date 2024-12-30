@@ -1,8 +1,10 @@
 package main;
 
 import java.util.Arrays;
+import java.util.Random;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /** Activation Function enum containing regular and derivative functions of commonly-used Activation Functions */
 public enum Activation {
@@ -87,6 +89,11 @@ public enum Activation {
         return output;
     });
 
+    private static final Random RANDOM = new Random();
+    private static final BiFunction<Integer,Integer,Double> HE_Initialization = (inputSize,outputSize)->RANDOM.nextGaussian(0,Math.sqrt(2.0/(inputSize+outputSize)));
+    private static final BiFunction<Integer,Integer,Double> XAVIER_Initialization = (inputSize,outputSize)->RANDOM.nextGaussian(0,Math.sqrt(1/Math.sqrt(inputSize+outputSize)));
+
+
     private final Function<double[],double[]> function;
     private final BiFunction<double[],double[],double[]> derivativeFunction;
     Activation(Function<double[],double[]> function,BiFunction<double[],double[],double[]> derivativeFunction) {
@@ -111,5 +118,13 @@ public enum Activation {
         double[] newGradient = this.derivativeFunction.apply(z, da_dC);
         for(double v : newGradient) assert Double.isFinite(v) : "Deriv of Activation Function returning invalid values " + Arrays.toString(z) + "  " + Arrays.toString(da_dC);
         return newGradient;
+    }
+
+    /**
+     * Returns the weights and bias initializer supplier best associated with {@code AF} function
+     */
+    public static Supplier<Double> getInitializer(Activation AF,int inputNum,int outputNum){
+        if(AF.equals(ReLU) || AF.equals(LeakyReLU)) return ()->HE_Initialization.apply(inputNum,outputNum);
+        else return ()->XAVIER_Initialization.apply(inputNum,outputNum);
     }
 }

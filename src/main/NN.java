@@ -1,6 +1,7 @@
 package main;
 
 import java.util.Random;
+import java.util.function.Supplier;
 
 public class NN {
     /**
@@ -87,9 +88,11 @@ public class NN {
         this.outputAF = outputAF;
         this.costFunction = costFunction;
 
-        Random rand = new Random();
-        for (int i = 1; i < layers.length; i++)
-            this.layers[i - 1] = new Layer(layers[i - 1], layers[i],()->(rand.nextGaussian(0,2.0/(inputNum+outputNum))));
+        for (int i = 1; i < layers.length-1; i++) {
+            this.layers[i - 1] = new Layer(layers[i - 1], layers[i],Activation.getInitializer(hiddenAF,inputNum,outputNum));
+        }
+
+        this.layers[layers.length-2] = new Layer(layers[layers.length-2],layers[layers.length-1],Activation.getInitializer(outputAF,inputNum,outputNum));
 
         clearGradient();
     }
