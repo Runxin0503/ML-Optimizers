@@ -1,5 +1,6 @@
 package main;
 
+import java.util.Arrays;
 import java.util.Random;
 import java.util.function.Supplier;
 
@@ -219,5 +220,17 @@ public class NN {
 
             layers[i].applyGradiant(weightGradient[i], biasGradient[i], adjustedLearningRate, momentum);
         }
+    }
+
+    @Override
+    public String toString(){
+        StringBuilder sb = new StringBuilder();
+        for(int i=0;i<layers.length;i++){
+            sb.append("Layer ").append(i).append("\n");
+            sb.append("Weights: ");
+            Arrays.asList(layers[i].weights).forEach(weight-> sb.append(Arrays.toString(weight)).append(","));
+            sb.append("\nBiases: \n").append(Arrays.toString(layers[i].bias));
+        }
+        return sb.toString();
     }
 }

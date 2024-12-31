@@ -6,17 +6,17 @@ import java.util.function.BiFunction;
 public enum Cost {
     diffSquared((input,expectedInput) ->{
         double[] output = new double[input.length];
-        for(int i=0;i<input.length;i++) output[i] = Math.min(1_000_000,(input[i]-expectedInput[i]) * (input[i]-expectedInput[i]));
+        for(int i=0;i<input.length;i++) output[i] = (input[i]-expectedInput[i]) * (input[i]-expectedInput[i]) / input.length;
         return output;
     },(input,expectedInput) ->{
         double[] output = new double[input.length];
-        for(int i=0;i<input.length;i++) output[i] = 2*(input[i]-expectedInput[i]);
+        for(int i=0;i<input.length;i++) output[i] = 2*(input[i]-expectedInput[i]) / input.length;
         return output;
     }),
     crossEntropy((input,expectedInput) ->{
         double[] output = new double[input.length];
         for(int i=0;i<input.length;i++)
-            output[i] = -Math.max(-1_000_000,(expectedInput[i]==1 ? Math.log(input[i]) : Math.log(1-input[i])));
+            output[i] = -(expectedInput[i]==1 ? Math.log(input[i]) : Math.log(1-input[i]));
         return output;
     },(input,expectedInput) ->{
         double[] output = new double[input.length];
