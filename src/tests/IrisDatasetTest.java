@@ -45,9 +45,9 @@ public class IrisDatasetTest {
         }
     }
 
-    @RepeatedTest(100)
+    @RepeatedTest(1000)
     void testDataset() {
-        NN NeuralNet = new NN(Activation.ReLU, Activation.softmax,Cost.crossEntropy, 4,8,8, names.size());
+        NN NeuralNet = new NN(Activation.sigmoid, Activation.softmax,Cost.crossEntropy, 4,10,10, names.size());
 
         final int iterations = 200;
         final int batchSize = 15;
@@ -59,9 +59,11 @@ public class IrisDatasetTest {
                 for (int i = 0; i < batchSize; i++) {
                     trainBatchInputs[i] = features.get(trainingIndex + i);
                     trainBatchOutputs[i][featuresToCategories.get(trainBatchInputs[i])] = 1;
-                }
-
-                NN.learn(NeuralNet, 0.01, 0.9, trainBatchInputs, trainBatchOutputs);
+                }//momentum 0.9, learningRate: 0.01 -> 5%, 0.05 -> 3%
+                //momentum 0.9, learningRate: 0.01 -> ?%, 0.05 -> ?% more hidden neurons
+                //momentum 0.95, learningRate: 0.01 -> ?%, 0.05 -> 1% (relu)
+                //momentum 0.95, learningRate: 0.01 -> bad, 0.05 -> ?%, 0.1 -> ?% (sigmoid)
+                NN.learn(NeuralNet, 0.1, 0.9, trainBatchInputs, trainBatchOutputs);
 
                 if ((trainingIndex + batchSize) % report_interval == 0) {
 //                    System.out.print("Iteration " + ((int) (((double) trainingIndex) / batchSize) + 1));
