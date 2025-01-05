@@ -17,7 +17,7 @@ public class Layer {
     public final double[][] weights;
 
     /**
-     * A 2D matrix of weights velocities for SGD with momentum
+     * A 2D matrix of weight velocities for RMS-prop
      * <br>Rows: The neuron {@code n} in this layer
      * <br>Columns: The weight of a synapse pointing to {@code n}
      */ //made public for testing purposes
@@ -99,18 +99,22 @@ public class Layer {
      * Applies the {@code weightGradient} and {@code biasGradient} to the weight and bias of this java.Layer.
      * <br>Updates the weight and bias's gradient velocity vectors accordingly as well.
      */
-    public void applyGradiant(double[][] weightGradient, double[] biasGradient, double adjustedLearningRate, double momentum) {
+    public void applyGradiant(double[][] weightGradient, double[] biasGradient, double adjustedLearningRate, double beta, double epsilon) {
         for (int i = 0; i < nodes; i++) {
             for (int j = 0; j < weights[0].length; j++) {
                 assert Double.isFinite(weightGradient[i][j]);
 //                weights[i][j] -= adjustedLearningRate * weightGradient[i][j];
-                weightsVelocity[i][j] = weightsVelocity[i][j] * momentum + (1 - momentum) * weightGradient[i][j];
-                weights[i][j] -= adjustedLearningRate * weightsVelocity[i][j];
+//                weightsVelocity[i][j] = weightsVelocity[i][j] * momentum + (1 - momentum) * weightGradient[i][j];
+//                weights[i][j] -= adjustedLearningRate * weightsVelocity[i][j];
+                weightsVelocity[i][j] = beta * weightsVelocity[i][j] + (1 - beta) * (weightGradient[i][j] * weightGradient[i][j]);
+                weights[i][j] -= adjustedLearningRate * weightGradient[i][j] / Math.sqrt(weightsVelocity[i][j] + epsilon);
             }
             assert Double.isFinite(biasGradient[i]);
 //            bias[i] -= adjustedLearningRate * biasGradient[i];
-            biasVelocity[i] = biasVelocity[i] * momentum + (1 - momentum) * biasGradient[i];
-            bias[i] -= adjustedLearningRate * biasVelocity[i];
+//            biasVelocity[i] = biasVelocity[i] * momentum + (1 - momentum) * biasGradient[i];
+//            bias[i] -= adjustedLearningRate * biasVelocity[i];
+            biasVelocity[i] = beta * biasVelocity[i] + (1 - beta) * (biasGradient[i] * biasGradient[i]);
+            bias[i] -= adjustedLearningRate * biasGradient[i] / Math.sqrt(biasVelocity[i] + epsilon);
         }
     }
 }

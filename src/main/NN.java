@@ -1,8 +1,6 @@
 package main;
 
 import java.util.Arrays;
-import java.util.Random;
-import java.util.function.Supplier;
 
 public class NN {
     /**
@@ -52,11 +50,15 @@ public class NN {
 
     /**
      * "Trains" the given Neural Network class using the given inputs and expected outputs.
-     * <br>Uses SGD with momentum as training algorithm, requires Learning Rate and Momentum hyper-parameter.
+     * <br>Uses RMS-Prop as training algorithm, requires Learning Rate, beta, and epsilon hyper-parameter.
+     * @param learningRate a hyper-parameter dictating how fast this Neural Network 'learn' from the given inputs
+     * @param beta a hyper-parameter dictating how much of the previous velocity to keep. [0~1]
+     * @param epsilon a hyper-parameter that's typically very small to avoid divide by zero errors
      */
-    public static void learn(NN NN, double learningRate, double momentum, double[][] testCaseInputs, double[][] testCaseOutputs) {
+    public static void learn(NN NN, double learningRate, double beta, double epsilon, double[][] testCaseInputs, double[][] testCaseOutputs) {
         assert testCaseInputs.length == testCaseOutputs.length;
-        for(int i = 0; i < testCaseInputs.length; ++i) assert testCaseInputs[i].length == NN.inputNum && testCaseOutputs[i].length == NN.outputNum;
+        for (int i = 0; i < testCaseInputs.length; ++i)
+            assert testCaseInputs[i].length == NN.inputNum && testCaseOutputs[i].length == NN.outputNum;
         //prevents other threads from calling learn on the same Neural Network
         synchronized (NN) {
             NN.clearGradient();
@@ -65,7 +67,7 @@ public class NN {
             for (int i = 0; i < testCaseInputs.length; i++) {
                 double[] testCaseInput = testCaseInputs[i];
                 double[] testCaseOutput = testCaseOutputs[i];
-                workerThreads[i] = new Thread(null,() -> NN.backPropagate(testCaseInput, testCaseOutput),"WorkerThread");
+                workerThreads[i] = new Thread(null, () -> NN.backPropagate(testCaseInput, testCaseOutput), "WorkerThread");
                 workerThreads[i].start();
             }
 
@@ -76,7 +78,7 @@ public class NN {
                     throw new RuntimeException(e);
                 }
 
-            NN.applyGradient(learningRate / testCaseInputs.length, momentum);
+            NN.applyGradient(learningRate / testCaseInputs.length, beta, epsilon);
         }
     }
 
@@ -89,11 +91,11 @@ public class NN {
         this.outputAF = outputAF;
         this.costFunction = costFunction;
 
-        for (int i = 1; i < layers.length-1; i++) {
-            this.layers[i - 1] = new Layer(layers[i - 1], layers[i],Activation.getInitializer(hiddenAF,inputNum,outputNum));
+        for (int i = 1; i < layers.length - 1; i++) {
+            this.layers[i - 1] = new Layer(layers[i - 1], layers[i], Activation.getInitializer(hiddenAF, inputNum, outputNum));
         }
 
-        this.layers[layers.length-2] = new Layer(layers[layers.length-2],layers[layers.length-1],Activation.getInitializer(outputAF,inputNum,outputNum));
+        this.layers[layers.length - 2] = new Layer(layers[layers.length - 2], layers[layers.length - 1], Activation.getInitializer(outputAF, inputNum, outputNum));
 
         clearGradient();
     }
@@ -140,7 +142,7 @@ public class NN {
      * backpropagation.
      */
     public void backPropagate(double[] input, double[] expectedOutput) {
-        recursiveBackPropagation(input,expectedOutput,0);
+        recursiveBackPropagation(input, expectedOutput, 0);
     }
 
     /**
@@ -156,10 +158,10 @@ public class NN {
             double[] z = layers[layerIndex].calculateWeightedOutput(x);
             double[] a = outputAF.calculate(z);
 
-            double[] da_dC = costFunction.derivative(a,expectedOutput);
-            double[] dz_dC = outputAF.derivative(z,da_dC);
+            double[] da_dC = costFunction.derivative(a, expectedOutput);
+            double[] dz_dC = outputAF.derivative(z, da_dC);
 
-            return layers[layerIndex].updateGradient(getWeightGradientLayer(layerIndex),getBiasGradientLayer(layerIndex),dz_dC,x);
+            return layers[layerIndex].updateGradient(getWeightGradientLayer(layerIndex), getBiasGradientLayer(layerIndex), dz_dC, x);
         }
 
         // x -> z -> a -> ... -> da/dC -> dz/dC -> da_-1/dC
@@ -167,9 +169,9 @@ public class NN {
         double[] a = hiddenAF.calculate(z);
 
         double[] da_dC = recursiveBackPropagation(a, expectedOutput, layerIndex + 1);
-        double[] dz_dC = hiddenAF.derivative(z,da_dC);
+        double[] dz_dC = hiddenAF.derivative(z, da_dC);
 
-        return layers[layerIndex].updateGradient(getWeightGradientLayer(layerIndex),getBiasGradientLayer(layerIndex),dz_dC,x);
+        return layers[layerIndex].updateGradient(getWeightGradientLayer(layerIndex), getBiasGradientLayer(layerIndex), dz_dC, x);
     }
 
     /** Re-initializes the weight and bias gradients, effectively setting all contained values to 0 */
@@ -205,10 +207,8 @@ public class NN {
 
     /**
      * Applies the {@link #weightGradient} and {@link #biasGradient} derivatives to all layers in this Neural Network
-     * @param adjustedLearningRate a hyper-parameter dictating how fast this Neural Network 'learn' from the given inputs
-     * @param momentum a hyper-parameter dictating how much of the previous velocity to keep. [0~1]
      */
-    private void applyGradient(double adjustedLearningRate, double momentum) {
+    private void applyGradient(double adjustedLearningRate, double beta, double epsilon) {
         assert Double.isFinite(adjustedLearningRate);
         for (int i = 0; i < layers.length; i++) {
             for (double[] dd : weightGradient[i])
@@ -218,17 +218,17 @@ public class NN {
             for (double d : biasGradient[i])
                 assert Double.isFinite(d) : "biasGradient has invalid values";
 
-            layers[i].applyGradiant(weightGradient[i], biasGradient[i], adjustedLearningRate, momentum);
+            layers[i].applyGradiant(weightGradient[i], biasGradient[i], adjustedLearningRate, beta, epsilon);
         }
     }
 
     @Override
-    public String toString(){
+    public String toString() {
         StringBuilder sb = new StringBuilder();
-        for(int i=0;i<layers.length;i++){
+        for (int i = 0; i < layers.length; i++) {
             sb.append("Layer ").append(i).append("\n");
             sb.append("Weights: ");
-            Arrays.asList(layers[i].weights).forEach(weight-> sb.append(Arrays.toString(weight)).append(","));
+            Arrays.asList(layers[i].weights).forEach(weight -> sb.append(Arrays.toString(weight)).append(","));
             sb.append("\nBiases: \n").append(Arrays.toString(layers[i].bias));
         }
         return sb.toString();

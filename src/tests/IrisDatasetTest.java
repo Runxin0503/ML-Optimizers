@@ -63,7 +63,7 @@ public class IrisDatasetTest {
                 //momentum 0.9, learningRate: 0.01 -> ?%, 0.05 -> ?% more hidden neurons
                 //momentum 0.95, learningRate: 0.01 -> ?%, 0.05 -> 1% (relu)
                 //momentum 0.95, learningRate: 0.01 -> bad, 0.05 -> ?%, 0.1 -> ?% (sigmoid)
-                NN.learn(NeuralNet, 0.1, 0.9, trainBatchInputs, trainBatchOutputs);
+                NN.learn(NeuralNet, 0.1, 0.9,1e-4, trainBatchInputs, trainBatchOutputs);
 
                 if ((trainingIndex + batchSize) % report_interval == 0) {
 //                    System.out.print("Iteration " + ((int) (((double) trainingIndex) / batchSize) + 1));
@@ -117,7 +117,7 @@ public class IrisDatasetTest {
             if (evaluateOutput(NeuralNet.calculateOutput(feature), category)) accuracy++;
         }
         System.out.println("Test Accuracy: " + accuracy * 10000 / (Iris_Size - n) * 0.01 + "%\t\tAvg Cost: " + (int) (cost * 100) / (Iris_Size - n) * 0.01);
-        assertTrue((double) accuracy / (Iris_Size - n) > 0.9);
+        assertTrue((double) accuracy / (Iris_Size - n) > 0.97);
     }
 
     private static boolean evaluateOutput(double[] output, int answer) {
