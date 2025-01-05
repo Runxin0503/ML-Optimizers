@@ -22,7 +22,7 @@ public class MiniBatchBackPropTest {
         double[][] testCaseOutputs = new double[][]{{0, 1}, {1, 0}, {0, 1}, {1, 0}, {0, 1}, {1, 0}, {0, 1}, {1, 0}};
 
         for (int i = 0; i < iterations; i++) {
-            NN.learn(linearNN, 1.5, 0.9,1e-4, testCaseInputs, testCaseOutputs);
+            NN.learn(linearNN, 0.75, 0.9,0.9,1e-4, testCaseInputs, testCaseOutputs);
             if (evaluate(testCaseInputs, testCaseOutputs, linearNN, 1e-2)) break;
         }
 
@@ -39,7 +39,7 @@ public class MiniBatchBackPropTest {
         double[][] testCaseOutputs = new double[][]{{1, 0}, {1, 0}, {1, 0}, {0, 1}};
 
         for (int i = 0; i < iterations; i++) {
-            NN.learn(linearNN, 1, 0.9, 1e-4,testCaseInputs, testCaseOutputs);
+            NN.learn(linearNN, 0.5, 0.9,0.9, 1e-4,testCaseInputs, testCaseOutputs);
             if (evaluate(testCaseInputs, testCaseOutputs, linearNN, 1e-2)) break;
         }
 
@@ -57,7 +57,7 @@ public class MiniBatchBackPropTest {
         double[][] testCaseOutputs = new double[][]{{1, 0}, {0, 1}, {0, 1}, {0, 1}};
 
         for (int i = 0; i < iterations; i++) {
-            NN.learn(linearNN, 1, 0.9, 1e-4,testCaseInputs, testCaseOutputs);
+            NN.learn(linearNN, 0.5, 0.9,0.9, 1e-4,testCaseInputs, testCaseOutputs);
             if (evaluate(testCaseInputs, testCaseOutputs, linearNN, 1e-2)) break;
         }
 
@@ -74,7 +74,7 @@ public class MiniBatchBackPropTest {
         double[][] testCaseOutputs = new double[][]{{1, 0}, {0, 1}, {0, 1}, {1, 0}};
 
         for (int i = 0; i < iterations; i++) {//1.25,0.95 vs 1,0.9 (10 hidden neurons)
-            NN.learn(notLinearNN, 1, 0.9, 1e-4,testCaseInputs, testCaseOutputs);
+            NN.learn(notLinearNN, 0.5, 0.9,0.9, 1e-4,testCaseInputs, testCaseOutputs);
             if (evaluate(testCaseInputs, testCaseOutputs, notLinearNN, 1e-2)) break;
         }
 
@@ -96,14 +96,14 @@ public class MiniBatchBackPropTest {
         return true;
     }
 
-@RepeatedTest(10000)
+    @RepeatedTest(10000)
     void trainLinearFunctions() {
         Random rand = new Random();
         double m = rand.nextDouble(-1000, 1000), b = rand.nextDouble(-1000, 1000);
         Function<Double, Double> LinearFunction = (x) -> m * x + b;
 
         NN NeuralNet = new NN(Activation.ReLU, Activation.none, Cost.diffSquared, 1, 1);
-        final int iterations = 5_000;
+        final int iterations = 10_000;
         final int batchSize = 10;
         final int bound = 10;
 
@@ -127,7 +127,7 @@ public class MiniBatchBackPropTest {
 //                System.out.println();
 //            }
 
-            NN.learn(NeuralNet, 100, 0.9999, 1e-4,testCaseInputs, testCaseOutputs);
+            NN.learn(NeuralNet, 100, 0.9,0.9999, 1e-4,testCaseInputs, testCaseOutputs);
 
 //            if (i % (iterations / 100.0) == 0) {
 //                System.out.print("NeuralNet.calculateOutput after - ");

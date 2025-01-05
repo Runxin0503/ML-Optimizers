@@ -17,26 +17,43 @@ public class Layer {
     public final double[][] weights;
 
     /**
-     * A 2D matrix of weight velocities for RMS-prop
+     * A 2D matrix of weight velocities for SGD with momentum
      * <br>Rows: The neuron {@code n} in this layer
      * <br>Columns: The weight of a synapse pointing to {@code n}
      */ //made public for testing purposes
     public final double[][] weightsVelocity;
 
+    /**
+     * A 2D matrix of weight velocities for RMS-Prop
+     * <br>Rows: The neuron {@code n} in this layer
+     * <br>Columns: The weight of a synapse pointing to {@code n}
+     */ //made public for testing purposes
+    public final double[][] weightsVelocitySquared;
+
     /** The bias of each neuron in this layer */
     //made public for testing purposes
     public final double[] bias;
 
-    /** The bias of each neuron in this layer */
+    /** The bias velocity of each neuron in this layer, used in SGD with momentum */
     //made public for testing purposes
     public final double[] biasVelocity;
+
+    /** The bias velocity of each neuron in this layer, used in RMS-Prop */
+    //made public for testing purposes
+    public final double[] biasVelocitySquared;
+
+    /** The number of times this Neural Network updated its weights and biases. */
+    //made public for testing purposes
+    public int t = 1;
 
     public Layer(int nodesBefore, int nodes, Supplier<Double> initializer) {
         this.nodes = nodes;
         this.bias = new double[nodes];
         this.biasVelocity = new double[nodes];
+        this.biasVelocitySquared = new double[nodes];
         this.weights = new double[nodes][nodesBefore];
         this.weightsVelocity = new double[nodes][nodesBefore];
+        this.weightsVelocitySquared = new double[nodes][nodesBefore];
 
         for (int i = 0; i < nodes; i++) {
             for (int j = 0; j < nodesBefore; j++) weights[i][j] = initializer.get();
@@ -99,22 +116,37 @@ public class Layer {
      * Applies the {@code weightGradient} and {@code biasGradient} to the weight and bias of this java.Layer.
      * <br>Updates the weight and bias's gradient velocity vectors accordingly as well.
      */
-    public void applyGradiant(double[][] weightGradient, double[] biasGradient, double adjustedLearningRate, double beta, double epsilon) {
+    public void applyGradiant(double[][] weightGradient, double[] biasGradient, double adjustedLearningRate, double momentum, double beta, double epsilon) {
+        double correctionMomentum = 1 - Math.pow(momentum,t);
+        double correctionBeta = 1 - Math.pow(beta,t);
         for (int i = 0; i < nodes; i++) {
             for (int j = 0; j < weights[0].length; j++) {
                 assert Double.isFinite(weightGradient[i][j]);
 //                weights[i][j] -= adjustedLearningRate * weightGradient[i][j];
 //                weightsVelocity[i][j] = weightsVelocity[i][j] * momentum + (1 - momentum) * weightGradient[i][j];
 //                weights[i][j] -= adjustedLearningRate * weightsVelocity[i][j];
-                weightsVelocity[i][j] = beta * weightsVelocity[i][j] + (1 - beta) * (weightGradient[i][j] * weightGradient[i][j]);
-                weights[i][j] -= adjustedLearningRate * weightGradient[i][j] / Math.sqrt(weightsVelocity[i][j] + epsilon);
+//                weightsVelocity[i][j] = beta * weightsVelocity[i][j] + (1 - beta) * (weightGradient[i][j] * weightGradient[i][j]);
+//                weights[i][j] -= adjustedLearningRate * weightGradient[i][j] / Math.sqrt(weightsVelocity[i][j] + epsilon);
+                weightsVelocity[i][j] = momentum * weightsVelocity[i][j] + (1 - momentum) * weightGradient[i][j];
+                weightsVelocitySquared[i][j] = beta * weightsVelocitySquared[i][j] + (1 - beta) * weightGradient[i][j] * weightGradient[i][j];
+                double correctedVelocity = weightsVelocity[i][j] / correctionMomentum;
+                double correctedVelocitySquared = weightsVelocitySquared[i][j] / correctionBeta;
+                weights[i][j] -= adjustedLearningRate * correctedVelocity / Math.sqrt(correctedVelocitySquared + epsilon);
+                assert Double.isFinite(weights[i][j]) : "\ncorrectedVelocity: "+correctedVelocity+"\ncorrectedVelocitySquared: "+correctedVelocitySquared+"\nweightsVelocity: "+weightsVelocity[i][j]+"\nweightsVelocitySquared: "+weightsVelocitySquared[i][j];
             }
             assert Double.isFinite(biasGradient[i]);
 //            bias[i] -= adjustedLearningRate * biasGradient[i];
 //            biasVelocity[i] = biasVelocity[i] * momentum + (1 - momentum) * biasGradient[i];
 //            bias[i] -= adjustedLearningRate * biasVelocity[i];
-            biasVelocity[i] = beta * biasVelocity[i] + (1 - beta) * (biasGradient[i] * biasGradient[i]);
-            bias[i] -= adjustedLearningRate * biasGradient[i] / Math.sqrt(biasVelocity[i] + epsilon);
+//            biasVelocity[i] = beta * biasVelocity[i] + (1 - beta) * (biasGradient[i] * biasGradient[i]);
+//            bias[i] -= adjustedLearningRate * biasGradient[i] / Math.sqrt(biasVelocity[i] + epsilon);
+            biasVelocity[i] = momentum * biasVelocity[i] + (1 - momentum) * biasGradient[i];
+            biasVelocitySquared[i] = beta * biasVelocitySquared[i] + (1 - beta) * biasGradient[i] * biasGradient[i];
+            double correctedVelocity = biasVelocity[i] / correctionMomentum;
+            double correctedVelocitySquared = biasVelocitySquared[i] / correctionBeta;
+            bias[i] -= adjustedLearningRate * correctedVelocity / Math.sqrt(correctedVelocitySquared + epsilon);
+            assert Double.isFinite(bias[i]) : "\ncorrectedVelocity: "+correctedVelocity+"\ncorrectedVelocitySquared: "+correctedVelocitySquared+"\nbiasVelocity: "+biasVelocity[i]+"\nbiasVelocitySquared: "+biasVelocitySquared[i];
         }
+        t++;
     }
 }

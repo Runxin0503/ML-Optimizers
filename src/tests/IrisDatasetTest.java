@@ -63,7 +63,7 @@ public class IrisDatasetTest {
                 //momentum 0.9, learningRate: 0.01 -> ?%, 0.05 -> ?% more hidden neurons
                 //momentum 0.95, learningRate: 0.01 -> ?%, 0.05 -> 1% (relu)
                 //momentum 0.95, learningRate: 0.01 -> bad, 0.05 -> ?%, 0.1 -> ?% (sigmoid)
-                NN.learn(NeuralNet, 0.1, 0.9,1e-4, trainBatchInputs, trainBatchOutputs);
+                NN.learn(NeuralNet, 0.1, 0.9,0.9,1e-4, trainBatchInputs, trainBatchOutputs);
 
                 if ((trainingIndex + batchSize) % report_interval == 0) {
 //                    System.out.print("Iteration " + ((int) (((double) trainingIndex) / batchSize) + 1));

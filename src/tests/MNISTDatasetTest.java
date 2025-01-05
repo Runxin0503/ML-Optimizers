@@ -35,7 +35,7 @@ public class MNISTDatasetTest {
         }
     }
 
-    @RepeatedTest(10)
+    @RepeatedTest(100)
     void testDataset() {
         NN NeuralNet = new NN(Activation.sigmoid, Activation.softmax, Cost.crossEntropy, 784, 200, 10);
 
@@ -48,10 +48,8 @@ public class MNISTDatasetTest {
                 trainBatchInputs[i] = images[trainingIndex + i];
                 trainBatchOutputs[i][answers[trainingIndex + i]] = 1;
             }
-//momentum 0.95, learningRate of: 0.05 -> avg of ~91%, 0.08 -> avg of ~93%, 0.1 -> avg of ~93.3%
-//momentum 0.97, learningRate of: 0.05 -> avg of ~??%, 0.08 -> avg of ~??%, 0.1 -> avg of ~93.4%
-//momentum 0.985 learningRate of: 0.05 -> avg of ~92%, 0.08 -> avg of ~??%, 0.1 -> avg of ~93.3%
-            NN.learn(NeuralNet, 0.1, 0.97, 1e-4,trainBatchInputs, trainBatchOutputs);
+
+            NN.learn(NeuralNet, 0.05, 0.88,0.97, 1e-4,trainBatchInputs, trainBatchOutputs);
 
             if ((trainingIndex + batchSize) % report_interval == 0) {
 //                System.out.print("Iteration " + ((int)(((double) trainingIndex) / batchSize) + 1));
@@ -96,7 +94,7 @@ public class MNISTDatasetTest {
             if (evaluateOutput(NeuralNet.calculateOutput(images[i]), answers[i])) accuracy++;
         }
         System.out.println("Test Accuracy: " + accuracy * 10000 / (MNIST_Size - n) * 0.01 + "%\t\tAvg Cost: " + (int) (cost * 100) / (MNIST_Size - n) * 0.01);
-        assertTrue((double) accuracy / (MNIST_Size - n) > 0.94);
+        assertTrue((double) accuracy / (MNIST_Size - n) > 0.95);
     }
 
     private static boolean evaluateOutput(double[] output, int answer) {
