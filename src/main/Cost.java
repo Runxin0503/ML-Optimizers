@@ -31,19 +31,19 @@ public enum Cost {
         this.derivativeFunction = derivativeFunction;
     }
 
-    /** Transform {@code output} to the result of applying this Cost Function on the given output and expectedOutput array */
-    public double[] calculate(double[] input,double[] expectedInput) {
-        for(double v : input) assert Double.isFinite(v) : "Attempted to input invalid values into Loss Function";
-        double[] output = this.function.apply(input,expectedInput);
-        for(double v : output) assert Double.isFinite(v) : "Loss Function returning invalid values";
-        return output;
+    /** Returns the result of applying this Cost Function on the given output and expectedOutput array */
+    public double[] calculate(double[] output, double[] expectedOutput) {
+        for(double v : output) assert Double.isFinite(v) : "Attempted to input invalid values into Loss Function";
+        double[] costs = this.function.apply(output, expectedOutput);
+        for(double v : costs) assert Double.isFinite(v) : "Loss Function returning invalid values";
+        return costs;
     }
 
-    /** Transform {@code output} to the result of applying the derivative of this Cost Function on the given output and expectedOutput array */
-    public double[] derivative(double[] input, double[] expectedInput) {
-        for(double v : input) assert Double.isFinite(v) : "Attempted to input invalid values into Deriv of Loss Function";
-        double[] output = this.derivativeFunction.apply(input, expectedInput);
-        for(double v : input) assert Double.isFinite(v) : "Deriv of Loss Function returning invalid values";
-        return output;
+    /** Returns the result of applying the derivative of this Cost Function on the given output and expectedOutput array */
+    public double[] derivative(double[] output, double[] expectedOutput) {
+        for(double v : output) assert Double.isFinite(v) : "Attempted to input invalid values into Deriv of Loss Function";
+        double[] gradient = this.derivativeFunction.apply(output, expectedOutput);
+        for(double v : output) assert Double.isFinite(v) : "Deriv of Loss Function returning invalid values";
+        return gradient;
     }
 }

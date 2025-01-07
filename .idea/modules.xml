@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/SGD-BackPropagation-MNIST.iml" filepath="$PROJECT_DIR$/SGD-BackPropagation-MNIST.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ML-Optimizers.iml" filepath="$PROJECT_DIR$/ML-Optimizers.iml" />
     </modules>
   </component>
 </project>
