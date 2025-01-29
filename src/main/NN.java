@@ -1,7 +1,5 @@
 package main;
 
-import java.util.Arrays;
-
 public class NN {
     /**
      * The number of Input Neurons in this Neural Network
@@ -17,21 +15,6 @@ public class NN {
      * The array of Layers in this Neural Network
      */ //made public for testing purposes
     public final Layer[] layers;
-
-    /**
-     * The Gradients for derivative of all Biases with respect to the loss function for all neurons in all layers of this Neural Network
-     * <br>Rows: The {@link Layer} for which the weights are stored in.
-     * <br>Columns: The bias deriv of a node in that layer
-     */ //made public for testing purposes
-    public double[][] biasGradient;
-
-    /**
-     * The Gradients for derivative of all Weights with respect to the loss function for all synapses between all layers of this Neural Network.
-     * <br>java.Layer: The {@link Layer} for which the weights are stored in.
-     * <br>Rows: The neuron {@code n} stored in that layer
-     * <br>Columns: The weight deriv of a synapse pointing to {@code n}
-     */ //made public for testing purposes
-    public double[][][] weightGradient;
 
     /**
      * The java.Activation Function for hidden layers in this Neural Network
@@ -86,17 +69,17 @@ public class NN {
     public NN(Activation hiddenAF, Activation outputAF, Cost costFunction, int... layers) {
         this.inputNum = layers[0];
         this.outputNum = layers[layers.length - 1];
-        this.layers = new Layer[layers.length - 1];
+        this.layers = new DenseLayer[layers.length - 1];
 
         this.hiddenAF = hiddenAF;
         this.outputAF = outputAF;
         this.costFunction = costFunction;
 
         for (int i = 1; i < layers.length - 1; i++) {
-            this.layers[i - 1] = new Layer(layers[i - 1], layers[i], Activation.getInitializer(hiddenAF, inputNum, outputNum));
+            this.layers[i - 1] = new DenseLayer(layers[i - 1], layers[i], Activation.getInitializer(hiddenAF, inputNum, outputNum));
         }
 
-        this.layers[layers.length - 2] = new Layer(layers[layers.length - 2], layers[layers.length - 1], Activation.getInitializer(outputAF, inputNum, outputNum));
+        this.layers[layers.length - 2] = new DenseLayer(layers[layers.length - 2], layers[layers.length - 1], Activation.getInitializer(outputAF, inputNum, outputNum));
 
         clearGradient();
     }
@@ -138,12 +121,13 @@ public class NN {
     }
 
     /**
-     * Updates the {@link #weightGradient} and {@link #biasGradient} by calculating the output and
+     * Populates each layer's gradient parameters by calculating the output and
      * adding the derivative of cost function relative to each weight and bias value obtained from
      * backpropagation.
      */
     public void backPropagate(double[] input, double[] expectedOutput) {
         recursiveBackPropagation(input, expectedOutput, 0);
+        //todo unravel recursion
     }
 
     /**
@@ -162,7 +146,7 @@ public class NN {
             double[] da_dC = costFunction.derivative(a, expectedOutput);
             double[] dz_dC = outputAF.derivative(z, da_dC);
 
-            return layers[layerIndex].updateGradient(getWeightGradientLayer(layerIndex), getBiasGradientLayer(layerIndex), dz_dC, x);
+            return layers[layerIndex].updateGradient(dz_dC, x);
         }
 
         // x -> z -> a -> ... -> da/dC -> dz/dC -> da_-1/dC
@@ -172,55 +156,21 @@ public class NN {
         double[] da_dC = recursiveBackPropagation(a, expectedOutput, layerIndex + 1);
         double[] dz_dC = hiddenAF.derivative(z, da_dC);
 
-        return layers[layerIndex].updateGradient(getWeightGradientLayer(layerIndex), getBiasGradientLayer(layerIndex), dz_dC, x);
+        return layers[layerIndex].updateGradient(dz_dC, x);
     }
 
     /** Re-initializes the weight and bias gradients, effectively setting all contained values to 0 */
     private void clearGradient() {
-        weightGradient = new double[layers.length][][];
-        biasGradient = new double[layers.length][];
-        for (int i = 0; i < layers.length; i++) {
-            int nodes = layers[i].getNumNodes();
-            weightGradient[i] = new double[nodes][(i == 0 ? inputNum : layers[i - 1].getNumNodes())];
-            biasGradient[i] = new double[nodes];
-        }
+        for(Layer layer : layers) layer.clearGradient();
     }
 
     /**
-     * Locks {@code weightGradient[layerIndex]} behind its mutex, giving access to the corresponding biasGradient as well.
-     * <br>Takes up slightly more memory, but allows multiple threads to access different arrays in both weightGradient and biasGradient
-     */
-    private double[][] getWeightGradientLayer(int layerIndex) {
-        synchronized (weightGradient[layerIndex]) {
-            return weightGradient[layerIndex];
-        }
-    }
-
-    /**
-     * Locks {@code biasGradient[layerIndex]} behind the corresponding weightGradient array's mutex.
-     * <br>Takes up slightly more memory, but allows multiple threads to access different arrays in both biasGradient and weightGradient
-     */ //made public for testing purposes
-    public double[] getBiasGradientLayer(int layerIndex) {
-        synchronized (weightGradient[layerIndex]) {
-            return biasGradient[layerIndex];
-        }
-    }
-
-    /**
-     * Applies the {@link #weightGradient} and {@link #biasGradient} derivatives to all layers in this Neural Network
+     * Applies the gradients of each layer in this Neural Network to itself
      */
     private void applyGradient(double adjustedLearningRate, double momentum, double beta, double epsilon) {
         assert Double.isFinite(adjustedLearningRate);
-        for (int i = 0; i < layers.length; i++) {
-            for (double[] dd : weightGradient[i])
-                for (double d : dd)
-                    assert Double.isFinite(d) : "weightGradient has invalid values";
-
-            for (double d : biasGradient[i])
-                assert Double.isFinite(d) : "biasGradient has invalid values";
-
-            layers[i].applyGradiant(weightGradient[i], biasGradient[i], adjustedLearningRate, momentum, beta, epsilon);
-        }
+        for (Layer layer : layers)
+            layer.applyGradiant(adjustedLearningRate, momentum, beta, epsilon);
     }
 
     @Override
@@ -228,9 +178,7 @@ public class NN {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < layers.length; i++) {
             sb.append("Layer ").append(i).append("\n");
-            sb.append("Weights: ");
-            Arrays.asList(layers[i].weights).forEach(weight -> sb.append(Arrays.toString(weight)).append(","));
-            sb.append("\nBiases: \n").append(Arrays.toString(layers[i].bias));
+            sb.append(layers[i].toString());
         }
         return sb.toString();
     }

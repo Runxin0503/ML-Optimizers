@@ -89,7 +89,7 @@ public class BackPropTest {
     }
 
     /** Test Procedure: XOR. When both inputs are 1,1 or 0,0 predict 0, otherwise predict 1 */
-    @RepeatedTest(10000)
+    @RepeatedTest(10000) //failing 2 out of 10,000, acceptable
     void trainXORNeuralNetwork() {
         final NN semiComplexNN = new NN(Activation.tanh, Activation.softmax, Cost.crossEntropy, 2, 8, 2);
         final int iterations = 1000;
@@ -98,7 +98,6 @@ public class BackPropTest {
             double[] testInput = new double[]{Math.round(Math.random()), Math.round(Math.random())};
             double[] testOutput = new double[2];
             testOutput[testInput[0] == testInput[1] ? 0 : 1] = 1;
-//            System.out.println(Arrays.toString(testInput));
 
             NN.learn(semiComplexNN, 0.015, 0.96,0.9, 1e-4,new double[][]{testInput}, new double[][]{testOutput});
 
@@ -108,7 +107,6 @@ public class BackPropTest {
                     semiComplexNN.calculateOutput(new double[]{0, 1}),
                     semiComplexNN.calculateOutput(new double[]{1, 0}))) break;
         }
-//        System.out.println();
 
         assertTrue(evaluate(1e-2, new double[][]{{1, 0}, {1, 0}, {0, 1}, {0, 1}},
                 semiComplexNN.calculateOutput(new double[]{1, 1}),
