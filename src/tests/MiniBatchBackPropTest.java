@@ -14,8 +14,11 @@ public class MiniBatchBackPropTest {
 
     /** Test Procedure: When input is 0, predict 1. When input is 1, predict 0 */
     @RepeatedTest(10000)
-    void trainNOTNeuralNetwork() {
-        final NN linearNN = new NN(Activation.ReLU, Activation.softmax, Cost.crossEntropy, 1, 20, 2);
+    void trainNOTNeuralNetwork() { //todo not working
+        final NN linearNN = new NN.NetworkBuilder().setInputNum(1)
+                .addDenseLayer(20).addDenseLayer(2)
+                .setHiddenAF(Activation.ReLU).setOutputAF(Activation.softmax)
+                .setCostFunction(Cost.crossEntropy).build();
         final int iterations = 3000;
 
         double[][] testCaseInputs = new double[][]{{0}, {1}, {0}, {1}, {0}, {1}, {0}, {1}};
@@ -32,7 +35,10 @@ public class MiniBatchBackPropTest {
     /** Test Procedure: AND. When input is both 1, predict 1, otherwise predict 0 */
     @RepeatedTest(10000)
     void trainANDNeuralNetwork() {
-        final NN linearNN = new NN(Activation.sigmoid, Activation.softmax, Cost.crossEntropy, 2, 4, 2);
+        final NN linearNN = new NN.NetworkBuilder().setInputNum(2)
+                .addDenseLayer(6).addDenseLayer(2)
+                .setHiddenAF(Activation.sigmoid).setOutputAF(Activation.softmax)
+                .setCostFunction(Cost.crossEntropy).build();
         final int iterations = 1000;
 
         double[][] testCaseInputs = new double[][]{{0, 0}, {0, 1}, {1, 0}, {1, 1}};
@@ -50,7 +56,10 @@ public class MiniBatchBackPropTest {
     /** Test Procedure: OR. When either input is 1, predict 1, otherwise predict 0 */
     @RepeatedTest(10000)
     void trainORNeuralNetwork() {
-        final NN linearNN = new NN(Activation.sigmoid, Activation.softmax, Cost.crossEntropy, 2, 4, 2);
+        final NN linearNN = new NN.NetworkBuilder().setInputNum(2)
+                .addDenseLayer(4).addDenseLayer(2)
+                .setHiddenAF(Activation.sigmoid).setOutputAF(Activation.softmax)
+                .setCostFunction(Cost.crossEntropy).build();
         final int iterations = 1000;
 
         double[][] testCaseInputs = new double[][]{{0, 0}, {0, 1}, {1, 0}, {1, 1}};
@@ -66,19 +75,22 @@ public class MiniBatchBackPropTest {
 
     /** Test Procedure: XOR. When both inputs are 1,1 or 0,0 predict 0, otherwise predict 1 */
     @RepeatedTest(10000)
-    void trainXORNeuralNetwork() {
-        final NN notLinearNN = new NN(Activation.tanh, Activation.softmax, Cost.crossEntropy, 2,10, 2);
+    void trainXORNeuralNetwork() { //todo not working
+        final NN semiComplexNN = new NN.NetworkBuilder().setInputNum(2)
+                .addDenseLayer(8).addDenseLayer(2)
+                .setHiddenAF(Activation.tanh).setOutputAF(Activation.softmax)
+                .setCostFunction(Cost.crossEntropy).build();
         final int iterations = 1000;
 
         double[][] testCaseInputs = new double[][]{{0, 0}, {0, 1}, {1, 0}, {1, 1}};
         double[][] testCaseOutputs = new double[][]{{1, 0}, {0, 1}, {0, 1}, {1, 0}};
 
         for (int i = 0; i < iterations; i++) {//1.25,0.95 vs 1,0.9 (10 hidden neurons)
-            NN.learn(notLinearNN, 0.5, 0.9,0.9, 1e-4,testCaseInputs, testCaseOutputs);
-            if (evaluate(testCaseInputs, testCaseOutputs, notLinearNN, 1e-2)) break;
+            NN.learn(semiComplexNN, 0.5, 0.9,0.9, 1e-4,testCaseInputs, testCaseOutputs);
+            if (evaluate(testCaseInputs, testCaseOutputs, semiComplexNN, 1e-2)) break;
         }
 
-        assertTrue(evaluate(testCaseInputs, testCaseOutputs, notLinearNN, 1e-2));
+        assertTrue(evaluate(testCaseInputs, testCaseOutputs, semiComplexNN, 1e-2));
     }
 
     private boolean evaluate(double[][] inputs, double[][] expectedOutputs, NN NeuralNet, double threshold) {
@@ -97,12 +109,14 @@ public class MiniBatchBackPropTest {
     }
 
     @RepeatedTest(10000)
-    void trainLinearFunctions() {
+    void trainLinearFunctions() { //todo not working
         Random rand = new Random();
         double m = rand.nextDouble(-1000, 1000), b = rand.nextDouble(-1000, 1000);
         Function<Double, Double> LinearFunction = (x) -> m * x + b;
 
-        NN NeuralNet = new NN(Activation.ReLU, Activation.none, Cost.diffSquared, 1, 1);
+        NN NeuralNet = new NN.NetworkBuilder().setInputNum(1).addDenseLayer(1)
+                .setHiddenAF(Activation.ReLU).setOutputAF(Activation.none)
+                .setCostFunction(Cost.diffSquared).build();
         final int iterations = 10_000;
         final int batchSize = 10;
         final int bound = 10;

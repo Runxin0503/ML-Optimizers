@@ -34,15 +34,19 @@ public class DenseLayer extends Layer {
      */
     private final double[][] weightGradient;
 
-    public DenseLayer(int nodesBefore, int nodes, Supplier<Double> initializer) {
-        super(nodes, initializer);
+    public DenseLayer(int nodesBefore, int nodes) {
+        super(nodes);
         this.weights = new double[nodes][nodesBefore];
         this.weightsVelocity = new double[nodes][nodesBefore];
         this.weightsVelocitySquared = new double[nodes][nodesBefore];
         this.weightGradient = new double[nodes][nodesBefore];
+    }
 
+    @Override
+    public void initialize(Supplier<Double> initializer){
+        super.initialize(initializer);
         for (int i = 0; i < nodes; i++)
-            for (int j = 0; j < nodesBefore; j++)
+            for (int j = 0; j < weights[0].length; j++)
                 weights[i][j] = initializer.get();
     }
 

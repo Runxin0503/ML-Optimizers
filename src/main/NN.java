@@ -1,19 +1,21 @@
 package main;
 
+import java.util.ArrayList;
+
 public class NN {
     /**
      * The number of Input Neurons in this Neural Network
-     */ //made public for testing purposes
+     */ //made public for testing purposes, was private
     public final int inputNum;
 
     /**
      * The number of Output Neurons in this Neural Network
-     */ //made public for testing purposes
+     */ //made public for testing purposes, was private
     public final int outputNum;
 
     /**
      * The array of Layers in this Neural Network
-     */ //made public for testing purposes
+     */ //made public for testing purposes, was private
     public final Layer[] layers;
 
     /**
@@ -66,20 +68,14 @@ public class NN {
         }
     }
 
-    public NN(Activation hiddenAF, Activation outputAF, Cost costFunction, int... layers) {
-        this.inputNum = layers[0];
-        this.outputNum = layers[layers.length - 1];
-        this.layers = new DenseLayer[layers.length - 1];
+    private NN(int inputNum, int outputNum, Activation hiddenAF, Activation outputAF, Cost costFunction, Layer[] layers) {
+        this.inputNum = inputNum;
+        this.outputNum = outputNum;
+        this.layers = layers;
 
         this.hiddenAF = hiddenAF;
         this.outputAF = outputAF;
         this.costFunction = costFunction;
-
-        for (int i = 1; i < layers.length - 1; i++) {
-            this.layers[i - 1] = new DenseLayer(layers[i - 1], layers[i], Activation.getInitializer(hiddenAF, inputNum, outputNum));
-        }
-
-        this.layers[layers.length - 2] = new DenseLayer(layers[layers.length - 2], layers[layers.length - 1], Activation.getInitializer(outputAF, inputNum, outputNum));
 
         clearGradient();
     }
@@ -161,7 +157,7 @@ public class NN {
 
     /** Re-initializes the weight and bias gradients, effectively setting all contained values to 0 */
     private void clearGradient() {
-        for(Layer layer : layers) layer.clearGradient();
+        for (Layer layer : layers) layer.clearGradient();
     }
 
     /**
@@ -181,5 +177,63 @@ public class NN {
             sb.append(layers[i].toString());
         }
         return sb.toString();
+    }
+
+    public static class NetworkBuilder {
+        private int inputNum = -1, outputNum = -1;
+        private Activation hiddenAF = null;
+        private Activation outputAF = null;
+        private Cost costFunction = null;
+        private final ArrayList<Layer> layers = new ArrayList<>();
+
+        public NetworkBuilder setInputNum(int inputNum) {
+            this.inputNum = inputNum;
+            if (!layers.isEmpty()) layers.set(0, new DenseLayer(inputNum, layers.getFirst().nodes));
+            return this;
+        }
+
+        public NetworkBuilder addDenseLayer(int nodes) {
+            if (layers.isEmpty()) layers.add(new DenseLayer(inputNum, nodes));
+            else layers.add(new DenseLayer(layers.getLast().nodes, nodes));
+            outputNum = layers.getLast().nodes;
+            return this;
+        }
+
+        public NetworkBuilder addConvolutionalLayer(int inputWidth, int inputHeight, int inputLength,
+                                                    int kernelWidth, int kernelHeight, int numKernels,
+                                                    int strideWidth, int strideHeight) {
+            assert layers.getLast().nodes == inputWidth * inputHeight * inputLength;
+            layers.add(new ConvolutionalLayer(inputWidth, inputHeight, inputLength, kernelWidth, kernelHeight, numKernels, strideWidth, strideHeight, false));
+            outputNum = layers.getLast().nodes;
+            return this;
+        }
+
+        public NetworkBuilder setHiddenAF(Activation hiddenAF) {
+            this.hiddenAF = hiddenAF;
+            return this;
+        }
+
+        public NetworkBuilder setOutputAF(Activation outputAF) {
+            this.outputAF = outputAF;
+            return this;
+        }
+
+        public NetworkBuilder setCostFunction(Cost costFunction) {
+            this.costFunction = costFunction;
+            return this;
+        }
+
+        public NN build() throws MissingInformationException {
+            if (inputNum == -1 || outputNum == -1 || hiddenAF == null || outputAF == null || costFunction == null || layers.isEmpty())
+                throw new MissingInformationException();
+            return new NN(inputNum, outputNum, hiddenAF, outputAF, costFunction, layers.toArray(new Layer[0]));
+        }
+    }
+
+    public static class MissingInformationException extends RuntimeException {
+        @Override
+        public String getMessage() {
+            return "Missing argument when creating new NN object";
+        }
     }
 }

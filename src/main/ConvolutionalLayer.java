@@ -18,23 +18,16 @@ public class ConvolutionalLayer extends Layer {
     private final int strideWidth, strideHeight;
     private final int paddingWidth;
     private final int paddingHeight;
-    private final boolean padding;
     private final int[][][] inputVectorToInputMatrix;
 
 
     public ConvolutionalLayer(int inputWidth, int inputHeight, int inputLength,
                               int kernelWidth, int kernelHeight, int numKernels,
-                              int strideWidth, int strideHeight, Supplier<Double> initializer) {
-        this(inputWidth, inputHeight, inputLength, kernelWidth, kernelHeight, numKernels, strideWidth, strideHeight, false, initializer);
-    }
-
-    public ConvolutionalLayer(int inputWidth, int inputHeight, int inputLength,
-                              int kernelWidth, int kernelHeight, int numKernels,
-                              int strideWidth, int strideHeight, boolean padding, Supplier<Double> initializer) {
+                              int strideWidth, int strideHeight, boolean padding) {
         super(padding ? inputWidth * inputHeight * inputLength * numKernels :
                 (Math.ceilDiv(inputWidth - kernelWidth + 1, strideWidth) + 1) *
                         (Math.ceilDiv(inputHeight - kernelHeight + 1, strideHeight) + 1) *
-                        inputLength, initializer);
+                        inputLength);
         this.inputWidth = inputWidth;
         this.inputHeight = inputHeight;
         this.inputLength = inputLength;
@@ -43,7 +36,6 @@ public class ConvolutionalLayer extends Layer {
         this.numKernels = numKernels;
         this.strideWidth = strideWidth;
         this.strideHeight = strideHeight;
-        this.padding = padding;
         if (padding) {
             this.paddingWidth = inputWidth * strideWidth - strideWidth - inputWidth + kernelWidth;
             this.paddingHeight = inputHeight * strideHeight - strideHeight - inputHeight + kernelHeight;
@@ -56,11 +48,6 @@ public class ConvolutionalLayer extends Layer {
         this.kernelsVelocity = new double[kernelWidth][kernelHeight][numKernels];
         this.kernelsVelocitySquared = new double[kernelWidth][kernelHeight][numKernels];
         this.kernelGradient = new double[kernelWidth][kernelHeight][numKernels];
-
-        for (int i = 0; i < kernelWidth; i++)
-            for (int j = 0; j < kernelHeight; j++)
-                for (int k = 0; k < numKernels; k++)
-                    kernels[i][j][k] = initializer.get();
 
         //initialize inputVectorToInputMatrix converter and find padding
         inputVectorToInputMatrix = new int[inputWidth + paddingWidth][inputHeight + paddingHeight][inputLength];
@@ -88,6 +75,14 @@ public class ConvolutionalLayer extends Layer {
                     inputVectorToInputMatrix[x][y][layer] = inputWidth * inputHeight * layer + inputWidth * j + i;
                 }
             }
+    }
+
+    @Override
+    public void initialize(Supplier<Double> initializer) {
+        for (int i = 0; i < kernelWidth; i++)
+            for (int j = 0; j < kernelHeight; j++)
+                for (int k = 0; k < numKernels; k++)
+                    kernels[i][j][k] = initializer.get();
     }
 
     private double getMatrixElementFromVector(double[] inputVector, int x, int y, int layer) {

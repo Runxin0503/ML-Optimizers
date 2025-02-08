@@ -47,7 +47,10 @@ public class IrisDatasetTest {
 
     @RepeatedTest(1000)
     void testDataset() {
-        NN NeuralNet = new NN(Activation.sigmoid, Activation.softmax,Cost.crossEntropy, 4,10,10, names.size());
+        final NN NeuralNet = new NN.NetworkBuilder().setInputNum(4)
+                .addDenseLayer(10).addDenseLayer(10).addDenseLayer(names.size())
+                .setHiddenAF(Activation.sigmoid).setOutputAF(Activation.softmax)
+                .setCostFunction(Cost.crossEntropy).build();
 
         final int iterations = 200;
         final int batchSize = 15;

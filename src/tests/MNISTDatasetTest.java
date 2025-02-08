@@ -36,8 +36,11 @@ public class MNISTDatasetTest {
     }
 
     @RepeatedTest(100)
-    void testDataset() {
-        NN NeuralNet = new NN(Activation.sigmoid, Activation.softmax, Cost.crossEntropy, 784, 200, 10);
+    void testDataset() { //todo not working
+        final NN NeuralNet = new NN.NetworkBuilder().setInputNum(784)
+                .addDenseLayer(200).addDenseLayer(10)
+                .setHiddenAF(Activation.sigmoid).setOutputAF(Activation.softmax)
+                .setCostFunction(Cost.crossEntropy).build();
 
         final int batchSize = 10;
         final int report_interval = MNIST_Size / batchSize / 10 * batchSize;

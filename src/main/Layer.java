@@ -28,13 +28,17 @@ public abstract class Layer {
     //made public for testing purposes, was protected
     public int t = 1;
 
-    public Layer(int nodes, Supplier<Double> initializer) {
+    public Layer(int nodes) {
         this.nodes = nodes;
         this.bias = new double[nodes];
         this.biasVelocity = new double[nodes];
         this.biasVelocitySquared = new double[nodes];
         this.biasGradient = new double[nodes];
 
+    }
+
+    /** Initializes the parameters of this Layer */
+    public void initialize(Supplier<Double> initializer){
         for (int i = 0; i < nodes; i++)
             bias[i] = initializer.get();
     }
