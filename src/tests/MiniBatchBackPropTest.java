@@ -14,7 +14,7 @@ public class MiniBatchBackPropTest {
 
     /** Test Procedure: When input is 0, predict 1. When input is 1, predict 0 */
     @RepeatedTest(10000)
-    void trainNOTNeuralNetwork() { //todo not working
+    void trainNOTNeuralNetwork() {
         final NN linearNN = new NN.NetworkBuilder().setInputNum(1)
                 .addDenseLayer(20).addDenseLayer(2)
                 .setHiddenAF(Activation.ReLU).setOutputAF(Activation.softmax)
@@ -75,7 +75,7 @@ public class MiniBatchBackPropTest {
 
     /** Test Procedure: XOR. When both inputs are 1,1 or 0,0 predict 0, otherwise predict 1 */
     @RepeatedTest(10000)
-    void trainXORNeuralNetwork() { //todo not working
+    void trainXORNeuralNetwork() {
         final NN semiComplexNN = new NN.NetworkBuilder().setInputNum(2)
                 .addDenseLayer(8).addDenseLayer(2)
                 .setHiddenAF(Activation.tanh).setOutputAF(Activation.softmax)
@@ -109,7 +109,7 @@ public class MiniBatchBackPropTest {
     }
 
     @RepeatedTest(10000)
-    void trainLinearFunctions() { //todo not working
+    void trainLinearFunctions() {
         Random rand = new Random();
         double m = rand.nextDouble(-1000, 1000), b = rand.nextDouble(-1000, 1000);
         Function<Double, Double> LinearFunction = (x) -> m * x + b;

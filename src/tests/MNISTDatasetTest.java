@@ -36,7 +36,7 @@ public class MNISTDatasetTest {
     }
 
     @RepeatedTest(100)
-    void testDataset() { //todo not working
+    void testDataset() {
         final NN NeuralNet = new NN.NetworkBuilder().setInputNum(784)
                 .addDenseLayer(200).addDenseLayer(10)
                 .setHiddenAF(Activation.sigmoid).setOutputAF(Activation.softmax)

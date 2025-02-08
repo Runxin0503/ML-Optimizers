@@ -14,7 +14,7 @@ public class BackPropTest {
 
     /** Test Procedure: When input is 0, predict 1. When input is 1, predict 0 */
     @RepeatedTest(10000)
-    void trainNOTNeuralNetwork() { //todo not working
+    void trainNOTNeuralNetwork() {
         final NN linearNN = new NN.NetworkBuilder().setInputNum(1)
                 .addDenseLayer(20).addDenseLayer(2)
                 .setHiddenAF(Activation.ReLU).setOutputAF(Activation.softmax)
@@ -40,7 +40,7 @@ public class BackPropTest {
 
     /** Test Procedure: AND. When input is both 1, predict 1, otherwise predict 0 */
     @RepeatedTest(10000)
-    void trainANDNeuralNetwork() { //todo not working
+    void trainANDNeuralNetwork() {
         final NN linearNN = new NN.NetworkBuilder().setInputNum(2)
                 .addDenseLayer(6).addDenseLayer(2)
                 .setHiddenAF(Activation.sigmoid).setOutputAF(Activation.softmax)
@@ -100,7 +100,7 @@ public class BackPropTest {
 
     /** Test Procedure: XOR. When both inputs are 1,1 or 0,0 predict 0, otherwise predict 1 */
     @RepeatedTest(10000) //failing 2 out of 10,000, acceptable
-    void trainXORNeuralNetwork() { //todo not working
+    void trainXORNeuralNetwork() {
         final NN semiComplexNN = new NN.NetworkBuilder().setInputNum(2)
                 .addDenseLayer(8).addDenseLayer(2)
                 .setHiddenAF(Activation.tanh).setOutputAF(Activation.softmax)

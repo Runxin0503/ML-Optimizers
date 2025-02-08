@@ -226,6 +226,8 @@ public class NN {
         public NN build() throws MissingInformationException {
             if (inputNum == -1 || outputNum == -1 || hiddenAF == null || outputAF == null || costFunction == null || layers.isEmpty())
                 throw new MissingInformationException();
+            for (Layer layer : layers)
+                layer.initialize(Activation.getInitializer(hiddenAF,inputNum,outputNum));
             return new NN(inputNum, outputNum, hiddenAF, outputAF, costFunction, layers.toArray(new Layer[0]));
         }
     }
