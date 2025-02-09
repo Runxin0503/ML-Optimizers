@@ -121,22 +121,23 @@ public class ConvolutionalLayer extends Layer {
         double[] da_dC = new double[inputWidth * inputHeight * inputLength];
 
         IntStream.range(0, numKernels).parallel().forEach(kernel -> {
-            for (int layer = 0; layer < inputLength; layer++)
+            IntStream.range(0,inputLength).parallel().forEach(layer -> {
                 for (int i = 0; i < outputWidth; i++)
                     for (int j = 0; j < outputHeight; j++) {
+                        int index = i + j * outputWidth + kernel * outputWidth * outputHeight;
+                        assert Double.isFinite(dz_dC[index]);
                         for (int kernelX = 0; kernelX < kernelWidth; kernelX++)
                             for (int kernelY = 0; kernelY < kernelHeight; kernelY++) {
                                 int absXPos = inputVectorToInputMatrix[i * strideWidth + kernelX][j * strideHeight + kernelY][layer];
                                 assert Double.isFinite(kernelGradient[kernelX][kernelY][kernel]);
                                 assert Double.isFinite(x[absXPos]);
 
-                                int index = i + j * outputWidth + kernel * outputWidth * outputHeight;
-                                assert Double.isFinite(dz_dC[index]);
 
                                 kernelGradient[kernelX][kernelY][kernel] += dz_dC[index] * x[absXPos];
                                 da_dC[absXPos] += dz_dC[index] * kernels[kernelX][kernelY][kernel];
                             }
                     }
+            });
         });
 
         return da_dC;
@@ -172,6 +173,22 @@ public class ConvolutionalLayer extends Layer {
             assert Double.isFinite(bias[i]) : "\ncorrectedVelocity: " + correctedVelocity + "\ncorrectedVelocitySquared: " + correctedVelocitySquared + "\nbiasVelocity: " + biasVelocity[i] + "\nbiasVelocitySquared: " + biasVelocitySquared[i];
         });
         t++;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for(int i=0;i<numKernels;i++){
+            sb.append("Kernel ").append(i).append(":\n");
+            sb.append(Arrays.deepToString(kernels[i])).append("\n");
+        }
+        sb.append("Biases: \n").append(Arrays.toString(bias));
+        return sb.toString();
+    }
+
+    @Override
+    public int getNumParameters() {
+        return kernels.length * kernels[0].length * kernels[0][0].length + super.getNumParameters();
     }
 
     @Override

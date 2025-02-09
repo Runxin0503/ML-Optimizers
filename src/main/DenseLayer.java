@@ -137,6 +137,11 @@ public class DenseLayer extends Layer {
         Arrays.fill(biasGradient, 0);
     }
 
+    @Override
+    public int getNumParameters() {
+        return weights.length * weights[0].length + super.getNumParameters();
+    }
+
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("Weights: ");

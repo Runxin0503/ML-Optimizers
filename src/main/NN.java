@@ -157,7 +157,11 @@ public class NN {
 
     @Override
     public String toString() {
+        int totalParameters = 0;
+        for(Layer layer : layers) totalParameters+=layer.getNumParameters();
+
         StringBuilder sb = new StringBuilder();
+        sb.append("Network with ").append(totalParameters).append(" parameters\n");
         for (int i = 0; i < layers.length; i++) {
             sb.append("Layer ").append(i).append("\n");
             sb.append(layers[i].toString());

@@ -68,11 +68,11 @@ public class MNISTDatasetTest {
         evaluatePerformanceOnTest(NeuralNet, 0,0.95);
     }
 
-    @Test
+    @RepeatedTest(100)
     void testDatasetConvolutional() {
         final NN NeuralNet = new NN.NetworkBuilder().setInputNum(784)
-                .addConvolutionalLayer(28,28,1,3,3,30,1,1)
-                .addConvolutionalLayer(26,26,30,3,3,64,1,1)
+                .addConvolutionalLayer(28,28,1,5,5,32,2,2)
+                .addConvolutionalLayer(12,12,32,4,4,32,1,1)
                 .addDenseLayer(128).addDenseLayer(10).setHiddenAF(Activation.ReLU)
                 .setOutputAF(Activation.softmax).setCostFunction(Cost.crossEntropy).build();
 
@@ -85,19 +85,17 @@ public class MNISTDatasetTest {
                 trainBatchInputs[i] = images[trainingIndex + i];
                 trainBatchOutputs[i][answers[trainingIndex + i]] = 1;
             }
-
             NN.learn(NeuralNet, 0.05, 0.88,0.97, 1e-4,trainBatchInputs, trainBatchOutputs);
-            System.out.println("learned "+trainingIndex);
 
-            if ((trainingIndex + batchSize) % report_interval == 0) {
-                System.out.print("Iteration " + ((int)(((double) trainingIndex) / batchSize) + 1));
-                System.out.println(", "+(int)((trainingIndex + 1.0) / MNIST_Size * 10000) / 100.0+"% finished");
-//                reportPerformanceOnTest(NeuralNet,trainingIndex);
-                reportPerformanceOnTrain(NeuralNet,trainingIndex);
-                System.out.println("Predicted Output for " + answers[0] + ": " + getOutput(NeuralNet.calculateOutput(images[0])));
-                System.out.println(Arrays.toString(NeuralNet.calculateOutput(images[0])));
-                System.out.println("--------------------");
-            }
+//            if ((trainingIndex + batchSize) % report_interval == 0) {
+//                System.out.print("Iteration " + ((int)(((double) trainingIndex) / batchSize) + 1));
+//                System.out.println(", "+(int)((trainingIndex + 1.0) / MNIST_Size * 10000) / 100.0+"% finished");
+////                reportPerformanceOnTest(NeuralNet,trainingIndex);
+//                reportPerformanceOnTrain(NeuralNet,trainingIndex);
+//                System.out.println("Predicted Output for " + answers[0] + ": " + getOutput(NeuralNet.calculateOutput(images[0])));
+//                System.out.println(Arrays.toString(NeuralNet.calculateOutput(images[0])));
+//                System.out.println("--------------------");
+//            }
         }
         evaluatePerformanceOnTest(NeuralNet, 0,0.95);
     }

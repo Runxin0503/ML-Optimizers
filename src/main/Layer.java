@@ -61,4 +61,11 @@ public abstract class Layer {
 
     /** Clears this layer's gradient for its parameters with respect to the loss function */
     public abstract void clearGradient();
+
+    /** Returns the number of learnable parameters in this layer */
+    public int getNumParameters() {
+        return bias.length;
+    }
+
+    public abstract String toString();
 }
