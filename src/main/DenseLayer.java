@@ -98,7 +98,7 @@ public class DenseLayer extends Layer {
      * Applies the {@code weightGradient} and {@code biasGradient} to the weight and bias of this java.Layer.
      * <br>Updates the weight and bias's gradient velocity vectors accordingly as well.
      */
-    public void applyGradiant(double adjustedLearningRate, double momentum, double beta, double epsilon) {
+    public void applyGradient(double adjustedLearningRate, double momentum, double beta, double epsilon) {
         double correctionMomentum = 1 - Math.pow(momentum, t);
         double correctionBeta = 1 - Math.pow(beta, t);
         for (int i = 0; i < nodes; i++) {

@@ -4,6 +4,7 @@ import main.Activation;
 import main.Cost;
 import main.NN;
 import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -64,7 +65,41 @@ public class MNISTDatasetTest {
 //                System.out.println("--------------------");
             }
         }
-        reportPerformanceOnTest(NeuralNet, 0);
+        evaluatePerformanceOnTest(NeuralNet, 0,0.95);
+    }
+
+    @Test
+    void testDatasetConvolutional() {
+        final NN NeuralNet = new NN.NetworkBuilder().setInputNum(784)
+                .addConvolutionalLayer(28,28,1,3,3,30,1,1)
+                .addConvolutionalLayer(26,26,30,3,3,64,1,1)
+                .addDenseLayer(128).addDenseLayer(10).setHiddenAF(Activation.ReLU)
+                .setOutputAF(Activation.softmax).setCostFunction(Cost.crossEntropy).build();
+
+        final int batchSize = 10;
+        final int report_interval = MNIST_Size / batchSize / 25 * batchSize;
+        for (int trainingIndex = 0; trainingIndex < MNIST_Size; trainingIndex += batchSize) {
+            double[][] trainBatchInputs = new double[batchSize][784];
+            double[][] trainBatchOutputs = new double[batchSize][10];
+            for (int i = 0; i < batchSize; i++) {
+                trainBatchInputs[i] = images[trainingIndex + i];
+                trainBatchOutputs[i][answers[trainingIndex + i]] = 1;
+            }
+
+            NN.learn(NeuralNet, 0.05, 0.88,0.97, 1e-4,trainBatchInputs, trainBatchOutputs);
+            System.out.println("learned "+trainingIndex);
+
+            if ((trainingIndex + batchSize) % report_interval == 0) {
+                System.out.print("Iteration " + ((int)(((double) trainingIndex) / batchSize) + 1));
+                System.out.println(", "+(int)((trainingIndex + 1.0) / MNIST_Size * 10000) / 100.0+"% finished");
+//                reportPerformanceOnTest(NeuralNet,trainingIndex);
+                reportPerformanceOnTrain(NeuralNet,trainingIndex);
+                System.out.println("Predicted Output for " + answers[0] + ": " + getOutput(NeuralNet.calculateOutput(images[0])));
+                System.out.println(Arrays.toString(NeuralNet.calculateOutput(images[0])));
+                System.out.println("--------------------");
+            }
+        }
+        evaluatePerformanceOnTest(NeuralNet, 0,0.95);
     }
 
     /**
@@ -87,6 +122,23 @@ public class MNISTDatasetTest {
      * Reports the performance of {@code NeuralNet} on everything BUT the first {@code n} inputs of the MNIST dataset
      * <br>In other words, evaluate the model on examples it hasn't seen yet
      */
+    private static void evaluatePerformanceOnTest(NN NeuralNet, int n,double minAccuracy) {
+        double cost = 0;
+        int accuracy = 0;
+        for (int i = n; i < MNIST_Size; i++) {
+            double[] expectedOutput = new double[10];
+            expectedOutput[answers[i]] = 1;
+            cost += NeuralNet.calculateCosts(images[i], expectedOutput);
+            if (evaluateOutput(NeuralNet.calculateOutput(images[i]), answers[i])) accuracy++;
+        }
+        System.out.println("Test Accuracy: " + accuracy * 10000 / (MNIST_Size - n) * 0.01 + "%\t\tAvg Cost: " + (int) (cost * 100) / (MNIST_Size - n) * 0.01);
+        assertTrue((double) accuracy / (MNIST_Size - n) > minAccuracy);
+    }
+
+    /**
+     * Reports the performance of {@code NeuralNet} on everything BUT the first {@code n} inputs of the MNIST dataset
+     * <br>In other words, evaluate the model on examples it hasn't seen yet
+     */
     private static void reportPerformanceOnTest(NN NeuralNet, int n) {
         double cost = 0;
         int accuracy = 0;
@@ -97,7 +149,6 @@ public class MNISTDatasetTest {
             if (evaluateOutput(NeuralNet.calculateOutput(images[i]), answers[i])) accuracy++;
         }
         System.out.println("Test Accuracy: " + accuracy * 10000 / (MNIST_Size - n) * 0.01 + "%\t\tAvg Cost: " + (int) (cost * 100) / (MNIST_Size - n) * 0.01);
-        assertTrue((double) accuracy / (MNIST_Size - n) > 0.95);
     }
 
     private static boolean evaluateOutput(double[] output, int answer) {

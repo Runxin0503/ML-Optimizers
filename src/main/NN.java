@@ -166,7 +166,7 @@ public class NN {
     private void applyGradient(double adjustedLearningRate, double momentum, double beta, double epsilon) {
         assert Double.isFinite(adjustedLearningRate);
         for (Layer layer : layers)
-            layer.applyGradiant(adjustedLearningRate, momentum, beta, epsilon);
+            layer.applyGradient(adjustedLearningRate, momentum, beta, epsilon);
     }
 
     @Override
@@ -202,8 +202,14 @@ public class NN {
         public NetworkBuilder addConvolutionalLayer(int inputWidth, int inputHeight, int inputLength,
                                                     int kernelWidth, int kernelHeight, int numKernels,
                                                     int strideWidth, int strideHeight) {
-            assert layers.getLast().nodes == inputWidth * inputHeight * inputLength;
-            layers.add(new ConvolutionalLayer(inputWidth, inputHeight, inputLength, kernelWidth, kernelHeight, numKernels, strideWidth, strideHeight, false));
+            return addConvolutionalLayer(inputWidth,inputHeight,inputLength,kernelWidth,kernelHeight,numKernels,strideWidth,strideHeight,false);
+        }
+
+        public NetworkBuilder addConvolutionalLayer(int inputWidth, int inputHeight, int inputLength,
+                                                    int kernelWidth, int kernelHeight, int numKernels,
+                                                    int strideWidth, int strideHeight,boolean padding) {
+            assert (layers.isEmpty() ? inputNum : layers.getLast().nodes) == inputWidth * inputHeight * inputLength;
+            layers.add(new ConvolutionalLayer(inputWidth, inputHeight, inputLength, kernelWidth, kernelHeight, numKernels, strideWidth, strideHeight, padding));
             outputNum = layers.getLast().nodes;
             return this;
         }
