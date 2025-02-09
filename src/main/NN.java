@@ -122,37 +122,23 @@ public class NN {
      * backpropagation.
      */
     public void backPropagate(double[] input, double[] expectedOutput) {
-        recursiveBackPropagation(input, expectedOutput, 0);
         //todo unravel recursion
-    }
-
-    /**
-     * Given any {@code layerIndex} > 0 and its respective layer inputs, returns the derivative of the
-     * input sum of all neurons in that layer.
-     * <br>{@code expectedOutput} is passed down the recursive calls until output layer is reached
-     *
-     * @return array of da/dC or derivative of {@code layerIndex-1}'th layer's Activation Function with respective to Loss Function
-     */
-    private double[] recursiveBackPropagation(double[] x, double[] expectedOutput, int layerIndex) {
-        if (layerIndex == layers.length - 1) {
-            // x -> z -> a -> da/dC -> dz/dC -> da_-1/dC
-            double[] z = layers[layerIndex].calculateWeightedOutput(x);
-            double[] a = outputAF.calculate(z);
-
-            double[] da_dC = costFunction.derivative(a, expectedOutput);
-            double[] dz_dC = outputAF.derivative(z, da_dC);
-
-            return layers[layerIndex].updateGradient(dz_dC, x);
+        double[][] zs = new double[layers.length][];
+        double[][] xs = new double[layers.length][];
+        xs[0] = input;
+        for(int i=0;i<layers.length-1;i++){
+            zs[i] = layers[i].calculateWeightedOutput(xs[i]);
+            xs[i+1] = hiddenAF.calculate(zs[i]);
         }
+        zs[layers.length-1] = layers[layers.length-1].calculateWeightedOutput(xs[layers.length-1]);
+        double[] output = outputAF.calculate(zs[layers.length-1]);
 
-        // x -> z -> a -> ... -> da/dC -> dz/dC -> da_-1/dC
-        double[] z = layers[layerIndex].calculateWeightedOutput(x);
-        double[] a = hiddenAF.calculate(z);
-
-        double[] da_dC = recursiveBackPropagation(a, expectedOutput, layerIndex + 1);
-        double[] dz_dC = hiddenAF.derivative(z, da_dC);
-
-        return layers[layerIndex].updateGradient(dz_dC, x);
+        double[] outputLayer_dz_dC = outputAF.derivative(zs[layers.length-1],costFunction.derivative(output,expectedOutput));
+        double[] nextLayer_da_dC = layers[layers.length-1].updateGradient(outputLayer_dz_dC,xs[layers.length-1]);
+        for(int i=layers.length-2;i>=0;i--){
+            double[] dz_dC = hiddenAF.derivative(zs[i],nextLayer_da_dC);
+            nextLayer_da_dC = layers[i].updateGradient(dz_dC,xs[i]);
+        }
     }
 
     /** Re-initializes the weight and bias gradients, effectively setting all contained values to 0 */
