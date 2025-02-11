@@ -46,10 +46,10 @@ public class ConvolutionalLayer extends Layer {
             paddingHeight = outputHeight * strideHeight + kernelHeight - inputHeight;
         }
 
-        this.kernels = new double[kernelWidth][kernelHeight][numKernels];
-        this.kernelsVelocity = new double[kernelWidth][kernelHeight][numKernels];
-        this.kernelsVelocitySquared = new double[kernelWidth][kernelHeight][numKernels];
-        this.kernelGradient = new double[kernelWidth][kernelHeight][numKernels];
+        this.kernels = new double[numKernels][kernelWidth][kernelHeight];
+        this.kernelsVelocity = new double[numKernels][kernelWidth][kernelHeight];
+        this.kernelsVelocitySquared = new double[numKernels][kernelWidth][kernelHeight];
+        this.kernelGradient = new double[numKernels][kernelWidth][kernelHeight];
 
         //initialize inputVectorToInputMatrix converter and find padding
         inputVectorToInputMatrix = new int[inputWidth + paddingWidth][inputHeight + paddingHeight][inputLength];
@@ -84,7 +84,7 @@ public class ConvolutionalLayer extends Layer {
         for (int i = 0; i < kernelWidth; i++)
             for (int j = 0; j < kernelHeight; j++)
                 for (int k = 0; k < numKernels; k++)
-                    kernels[i][j][k] = initializer.get();
+                    kernels[k][i][j] = initializer.get();
     }
 
     /** Applies the weights and biases of this java.Layer to the given input. Returns a new array. */
@@ -101,7 +101,7 @@ public class ConvolutionalLayer extends Layer {
                         double weightedSum = 0;
                         for (int scanX = 0; scanX < kernelWidth; scanX++)
                             for (int scanY = 0; scanY < kernelHeight; scanY++)
-                                weightedSum += kernels[scanX][scanY][kernel] * input[inputVectorToInputMatrix[x * strideWidth + scanX][y * strideHeight + scanY][layer]];
+                                weightedSum += kernels[kernel][scanX][scanY] * input[inputVectorToInputMatrix[x * strideWidth + scanX][y * strideHeight + scanY][layer]];
 
                         int nodeAbsPos = x + y * outputWidth + kernel * outputWidth * outputHeight;
                         output[nodeAbsPos] = weightedSum + bias[nodeAbsPos];
@@ -129,12 +129,12 @@ public class ConvolutionalLayer extends Layer {
                         for (int kernelX = 0; kernelX < kernelWidth; kernelX++)
                             for (int kernelY = 0; kernelY < kernelHeight; kernelY++) {
                                 int absXPos = inputVectorToInputMatrix[i * strideWidth + kernelX][j * strideHeight + kernelY][layer];
-                                assert Double.isFinite(kernelGradient[kernelX][kernelY][kernel]);
+                                assert Double.isFinite(kernelGradient[kernel][kernelX][kernelY]);
                                 assert Double.isFinite(x[absXPos]);
 
 
-                                kernelGradient[kernelX][kernelY][kernel] += dz_dC[index] * x[absXPos];
-                                da_dC[absXPos] += dz_dC[index] * kernels[kernelX][kernelY][kernel];
+                                kernelGradient[kernel][kernelX][kernelY] += dz_dC[index] * x[absXPos];
+                                da_dC[absXPos] += dz_dC[index] * kernels[kernel][kernelX][kernelY];
                             }
                     }
             });
@@ -154,13 +154,13 @@ public class ConvolutionalLayer extends Layer {
         IntStream.range(0, kernelWidth).parallel().forEach(x -> {
             for (int y = 0; y < kernelHeight; y++)
                 for (int layer = 0; layer < numKernels; layer++) {
-                    assert Double.isFinite(kernelGradient[x][y][layer]);
-                    kernelsVelocity[x][y][layer] = momentum * kernelsVelocity[x][y][layer] + (1 - momentum) * kernelGradient[x][y][layer];
-                    kernelsVelocitySquared[x][y][layer] = beta * kernelsVelocitySquared[x][y][layer] + (1 - beta) * kernelGradient[x][y][layer] * kernelGradient[x][y][layer];
-                    double correctedVelocity = kernelsVelocity[x][y][layer] / correctionMomentum;
-                    double correctedVelocitySquared = kernelsVelocitySquared[x][y][layer] / correctionBeta;
-                    kernels[x][y][layer] -= adjustedLearningRate * correctedVelocity / Math.sqrt(correctedVelocitySquared + epsilon);
-                    assert Double.isFinite(kernels[x][y][layer]) : "\ncorrectedVelocity: " + correctedVelocity + "\ncorrectedVelocitySquared: " + correctedVelocitySquared + "\nweightsVelocity: " + kernelsVelocity[x][y][layer] + "\nweightsVelocitySquared: " + kernelsVelocitySquared[x][y][layer];
+                    assert Double.isFinite(kernelGradient[layer][x][y]);
+                    kernelsVelocity[layer][x][y] = momentum * kernelsVelocity[layer][x][y] + (1 - momentum) * kernelGradient[layer][x][y];
+                    kernelsVelocitySquared[layer][x][y] = beta * kernelsVelocitySquared[layer][x][y] + (1 - beta) * kernelGradient[layer][x][y] * kernelGradient[layer][x][y];
+                    double correctedVelocity = kernelsVelocity[layer][x][y] / correctionMomentum;
+                    double correctedVelocitySquared = kernelsVelocitySquared[layer][x][y] / correctionBeta;
+                    kernels[layer][x][y] -= adjustedLearningRate * correctedVelocity / Math.sqrt(correctedVelocitySquared + epsilon);
+                    assert Double.isFinite(kernels[layer][x][y]) : "\ncorrectedVelocity: " + correctedVelocity + "\ncorrectedVelocitySquared: " + correctedVelocitySquared + "\nweightsVelocity: " + kernelsVelocity[x][y][layer] + "\nweightsVelocitySquared: " + kernelsVelocitySquared[x][y][layer];
                 }
         });
         IntStream.range(0, bias.length).parallel().forEach(i -> {
@@ -180,7 +180,8 @@ public class ConvolutionalLayer extends Layer {
         StringBuilder sb = new StringBuilder();
         for(int i=0;i<numKernels;i++){
             sb.append("Kernel ").append(i).append(":\n");
-            sb.append(Arrays.deepToString(kernels[i])).append("\n");
+            Layer.ArraysDeepToString(kernels[i],sb);
+            sb.append('\n');
         }
         sb.append("Biases: \n").append(Arrays.toString(bias));
         return sb.toString();

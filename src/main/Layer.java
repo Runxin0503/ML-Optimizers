@@ -68,4 +68,19 @@ public abstract class Layer {
     }
 
     public abstract String toString();
+
+    public static void ArraysDeepToString(double[][] array,StringBuilder sb) {
+        for (int i = 0; i < array.length; i++) {
+            sb.append("[");
+            for (int j = 0; j < array[i].length; j++) {
+                sb.append(String.format("%.2f", array[i][j]));
+                if (j < array[i].length - 1)
+                    sb.append(", ");
+            }
+            sb.append("]");
+            if (i < array.length - 1)
+                sb.append(",");
+            sb.append("\n");
+        }
+    }
 }

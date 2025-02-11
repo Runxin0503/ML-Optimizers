@@ -122,7 +122,6 @@ public class NN {
      * backpropagation.
      */
     public void backPropagate(double[] input, double[] expectedOutput) {
-        //todo unravel recursion
         double[][] zs = new double[layers.length][];
         double[][] xs = new double[layers.length][];
         xs[0] = input;

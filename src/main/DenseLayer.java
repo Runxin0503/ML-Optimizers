@@ -145,7 +145,7 @@ public class DenseLayer extends Layer {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("Weights: ");
-        Arrays.asList(weights).forEach(weight -> sb.append(Arrays.toString(weight)).append(","));
+        Layer.ArraysDeepToString(weights, sb);
         sb.append("\nBiases: \n").append(Arrays.toString(bias));
         return sb.toString();
     }
