@@ -19,6 +19,11 @@ public class NN {
     public final Layer[] layers;
 
     /**
+     * The value for encouraging exploration in softmax (discrete) actions in a Reinforcement Learning environment
+     */
+    private double temperature;
+
+    /**
      * The java.Activation Function for hidden layers in this Neural Network
      */
     private final Activation hiddenAF;
@@ -68,16 +73,23 @@ public class NN {
         }
     }
 
-    private NN(int inputNum, int outputNum, Activation hiddenAF, Activation outputAF, Cost costFunction, Layer[] layers) {
+    private NN(int inputNum, int outputNum, double temperature,Activation hiddenAF, Activation outputAF, Cost costFunction, Layer[] layers) {
         this.inputNum = inputNum;
         this.outputNum = outputNum;
         this.layers = layers;
 
+        this.temperature = temperature;
         this.hiddenAF = hiddenAF;
         this.outputAF = outputAF;
         this.costFunction = costFunction;
 
         clearGradient();
+    }
+
+    /** Sets the temperature (exploration) value of this Neural Network.
+     * <br>Only affects the output when {@link #outputAF} is {@link Activation#softmax} */
+    public void setTemperature(double temperature) {
+        this.temperature = temperature;
     }
 
     /**
@@ -91,6 +103,11 @@ public class NN {
         for (int i = 1; i < layers.length; i++) {
             result = layers[i].calculateWeightedOutput(hiddenAF.calculate(result));
         }
+
+        //exploration vs exploitation. Apply temperature in softmax function for RL algorithms
+        if (outputAF == Activation.softmax)
+            for(int i=0;i<result.length;i++)
+                result[i] /= temperature;
 
         result = outputAF.calculate(result);
 
@@ -130,7 +147,14 @@ public class NN {
             xs[i+1] = hiddenAF.calculate(zs[i]);
         }
         zs[layers.length-1] = layers[layers.length-1].calculateWeightedOutput(xs[layers.length-1]);
+        if (outputAF == Activation.softmax)
+            for(int i=0;i<zs[layers.length-1].length;i++)
+                zs[layers.length-1][i] /= temperature;
+
         double[] output = outputAF.calculate(zs[layers.length-1]);
+        if(outputAF == Activation.softmax)
+            for(int i=0;i<output.length;i++)
+                output[i] /= temperature;
 
         double[] outputLayer_dz_dC = outputAF.derivative(zs[layers.length-1],costFunction.derivative(output,expectedOutput));
         double[] nextLayer_da_dC = layers[layers.length-1].updateGradient(outputLayer_dz_dC,xs[layers.length-1]);
@@ -173,6 +197,7 @@ public class NN {
         private Activation hiddenAF = null;
         private Activation outputAF = null;
         private Cost costFunction = null;
+        private double temperature = 1;
         private final ArrayList<Layer> layers = new ArrayList<>();
 
         public NetworkBuilder setInputNum(int inputNum) {
@@ -218,12 +243,17 @@ public class NN {
             return this;
         }
 
+        public NetworkBuilder setTemperature(double temperature) {
+            this.temperature = temperature;
+            return this;
+        }
+
         public NN build() throws MissingInformationException {
             if (inputNum == -1 || outputNum == -1 || hiddenAF == null || outputAF == null || costFunction == null || layers.isEmpty())
                 throw new MissingInformationException();
             for (Layer layer : layers)
                 layer.initialize(Activation.getInitializer(hiddenAF,inputNum,outputNum));
-            return new NN(inputNum, outputNum, hiddenAF, outputAF, costFunction, layers.toArray(new Layer[0]));
+            return new NN(inputNum, outputNum, temperature, hiddenAF, outputAF, costFunction, layers.toArray(new Layer[0]));
         }
     }
 
