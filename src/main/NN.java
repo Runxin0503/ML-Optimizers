@@ -1,6 +1,7 @@
 package main;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class NN {
     /**
@@ -40,7 +41,7 @@ public class NN {
 
     /**
      * "Trains" the given Neural Network class using the given inputs and expected outputs.
-     * <br>Uses RMS-Prop as training algorithm, requires Learning Rate, beta, and epsilon hyper-parameter.
+     * <br>Uses ADAM as training algorithm, requires Learning Rate, beta, and epsilon hyper-parameter.
      * @param learningRate a hyper-parameter dictating how fast this Neural Network 'learn' from the given inputs
      * @param momentum a hyper-parameter dictating how much of the previous SGD velocity to keep. [0~1]
      * @param beta a hyper-parameter dictating how much of the previous RMS-Prop velocity to keep. [0~1]
@@ -70,6 +71,28 @@ public class NN {
                 }
 
             NN.applyGradient(learningRate / testCaseInputs.length, momentum, beta, epsilon);
+        }
+    }
+
+    /**
+     * Runs the optimizer in this Neural Network class with the given input and a single expected output.
+     * <br>Unlike {@link #learn}, this function does backpropagation on a single output element instead of an entire output vector.
+     * <br>Uses ADAM as training algorithm, requires Learning Rate, beta, and epsilon hyper-parameter.
+     * @param learningRate a hyper-parameter dictating how fast this Neural Network 'learn' from the given inputs
+     * @param momentum a hyper-parameter dictating how much of the previous SGD velocity to keep. [0~1]
+     * @param beta a hyper-parameter dictating how much of the previous RMS-Prop velocity to keep. [0~1]
+     * @param epsilon a hyper-parameter that's typically very small to avoid divide by zero errors
+     * @param outputIndex the index of the element to optimize
+     */
+    public static void learnSingleOutput(NN NN,double learningRate, double momentum, double beta, double epsilon, double[] input, int outputIndex, double expectedOutput) {
+        synchronized (NN) {
+            double[] output = NN.calculateOutput(input);
+            assert 0 <= outputIndex && outputIndex < NN.outputNum;
+            output[outputIndex] = expectedOutput;
+
+            NN.clearGradient();
+            NN.backPropagate(input,output);
+            NN.applyGradient(learningRate, momentum, beta, epsilon);
         }
     }
 
@@ -190,6 +213,23 @@ public class NN {
             sb.append(layers[i].toString());
         }
         return sb.toString();
+    }
+
+    @Override
+    public Object clone() {
+        Layer[] newLayers = new Layer[layers.length];
+        for(int i=0;i<layers.length;i++) newLayers[i] = (Layer)layers[i].clone();
+        return new NN(inputNum, outputNum, temperature, hiddenAF, outputAF, costFunction, newLayers);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(!(obj instanceof NN o)) return false;
+        return inputNum == o.inputNum && outputNum == o.outputNum &&
+                temperature == o.temperature &&
+                hiddenAF == o.hiddenAF && outputAF == o.outputAF &&
+                costFunction == o.costFunction &&
+                Arrays.equals(layers, o.layers);
     }
 
     public static class NetworkBuilder {

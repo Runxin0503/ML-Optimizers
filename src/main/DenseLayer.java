@@ -32,14 +32,14 @@ public class DenseLayer extends Layer {
      * <br>Rows: The neuron {@code n} in this layer
      * <br>Columns: The weight of a synapse pointing to {@code n}
      */
-    private final double[][] weightGradient;
+    private final double[][] weightsGradient;
 
     public DenseLayer(int nodesBefore, int nodes) {
         super(nodes);
         this.weights = new double[nodes][nodesBefore];
         this.weightsVelocity = new double[nodes][nodesBefore];
         this.weightsVelocitySquared = new double[nodes][nodesBefore];
-        this.weightGradient = new double[nodes][nodesBefore];
+        this.weightsGradient = new double[nodes][nodesBefore];
     }
 
     @Override
@@ -72,15 +72,15 @@ public class DenseLayer extends Layer {
      * @return da_dC where a is the activation function of the layer before this one
      */
     public synchronized double[] updateGradient(double[] dz_dC, double[] x) {
-        double[] da_dC = new double[weightGradient[0].length];
+        double[] da_dC = new double[weightsGradient[0].length];
         for (int i = 0; i < nodes; i++) {
-            for (int j = 0; j < weightGradient[0].length; j++) {
-                assert Double.isFinite(weightGradient[i][j]);
+            for (int j = 0; j < weightsGradient[0].length; j++) {
+                assert Double.isFinite(weightsGradient[i][j]);
                 assert Double.isFinite(dz_dC[i]);
                 assert Double.isFinite(x[j]);
 
-                weightGradient[i][j] += dz_dC[i] * x[j];
-                assert Double.isFinite(weightGradient[i][j]) : "weightGradient[i][j](" + weightGradient[i][j] + ") + dz_dC[i](" + dz_dC[i] + ") * x[j](" + x[j] + ") is equal to an invalid (Infinite) value";
+                weightsGradient[i][j] += dz_dC[i] * x[j];
+                assert Double.isFinite(weightsGradient[i][j]) : "weightsGradient[i][j](" + weightsGradient[i][j] + ") + dz_dC[i](" + dz_dC[i] + ") * x[j](" + x[j] + ") is equal to an invalid (Infinite) value";
 
                 assert Double.isFinite(da_dC[j]);
 
@@ -95,7 +95,7 @@ public class DenseLayer extends Layer {
     }
 
     /**
-     * Applies the {@code weightGradient} and {@code biasGradient} to the weight and bias of this java.Layer.
+     * Applies the {@code weightsGradient} and {@code biasGradient} to the weight and bias of this java.Layer.
      * <br>Updates the weight and bias's gradient velocity vectors accordingly as well.
      */
     public void applyGradient(double adjustedLearningRate, double momentum, double beta, double epsilon) {
@@ -103,14 +103,14 @@ public class DenseLayer extends Layer {
         double correctionBeta = 1 - Math.pow(beta, t);
         for (int i = 0; i < nodes; i++) {
             for (int j = 0; j < weights[0].length; j++) {
-                assert Double.isFinite(weightGradient[i][j]);
-//                weights[i][j] -= adjustedLearningRate * weightGradient[i][j];
-//                weightsVelocity[i][j] = weightsVelocity[i][j] * momentum + (1 - momentum) * weightGradient[i][j];
+                assert Double.isFinite(weightsGradient[i][j]);
+//                weights[i][j] -= adjustedLearningRate * weightsGradient[i][j];
+//                weightsVelocity[i][j] = weightsVelocity[i][j] * momentum + (1 - momentum) * weightsGradient[i][j];
 //                weights[i][j] -= adjustedLearningRate * weightsVelocity[i][j];
-//                weightsVelocity[i][j] = beta * weightsVelocity[i][j] + (1 - beta) * (weightGradient[i][j] * weightGradient[i][j]);
-//                weights[i][j] -= adjustedLearningRate * weightGradient[i][j] / Math.sqrt(weightsVelocity[i][j] + epsilon);
-                weightsVelocity[i][j] = momentum * weightsVelocity[i][j] + (1 - momentum) * weightGradient[i][j];
-                weightsVelocitySquared[i][j] = beta * weightsVelocitySquared[i][j] + (1 - beta) * weightGradient[i][j] * weightGradient[i][j];
+//                weightsVelocity[i][j] = beta * weightsVelocity[i][j] + (1 - beta) * (weightsGradient[i][j] * weightsGradient[i][j]);
+//                weights[i][j] -= adjustedLearningRate * weightsGradient[i][j] / Math.sqrt(weightsVelocity[i][j] + epsilon);
+                weightsVelocity[i][j] = momentum * weightsVelocity[i][j] + (1 - momentum) * weightsGradient[i][j];
+                weightsVelocitySquared[i][j] = beta * weightsVelocitySquared[i][j] + (1 - beta) * weightsGradient[i][j] * weightsGradient[i][j];
                 double correctedVelocity = weightsVelocity[i][j] / correctionMomentum;
                 double correctedVelocitySquared = weightsVelocitySquared[i][j] / correctionBeta;
                 weights[i][j] -= adjustedLearningRate * correctedVelocity / Math.sqrt(correctedVelocitySquared + epsilon);
@@ -133,7 +133,7 @@ public class DenseLayer extends Layer {
     }
 
     public void clearGradient() {
-        for (int i = 0; i < weightGradient.length; i++) weightGradient[i] = new double[weights[0].length];
+        for (int i = 0; i < weightsGradient.length; i++) weightsGradient[i] = new double[weights[0].length];
         Arrays.fill(biasGradient, 0);
     }
 
@@ -142,11 +142,38 @@ public class DenseLayer extends Layer {
         return weights.length * weights[0].length + super.getNumParameters();
     }
 
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Weights: ");
+        sb.append("Weights: ").append(Arrays.deepToString(weights));
         Layer.ArraysDeepToString(weights, sb);
         sb.append("\nBiases: \n").append(Arrays.toString(bias));
         return sb.toString();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(!(obj instanceof DenseLayer o) || super.equals(obj)) return false;
+        return Arrays.deepEquals(weights, o.weights) &&
+                Arrays.deepEquals(weightsVelocity,o.weightsVelocity) &&
+                Arrays.deepEquals(weightsVelocitySquared,o.weightsVelocitySquared) &&
+                Arrays.deepEquals(weightsGradient,o.weightsGradient);
+    }
+
+    @Override
+    public Object clone() {
+        int nodesBefore = weights[0].length;
+        DenseLayer newLayer = new DenseLayer(nodesBefore,nodes);
+        System.arraycopy(bias, 0, newLayer.bias, 0, nodes);
+        System.arraycopy(biasVelocity, 0, newLayer.biasVelocity, 0, nodes);
+        System.arraycopy(biasVelocitySquared, 0, newLayer.biasVelocitySquared, 0, nodes);
+        System.arraycopy(biasGradient, 0, newLayer.biasGradient, 0, nodes);
+        for(int i=0;i<weights.length;i++) {
+            System.arraycopy(weights[i], 0, newLayer.weights[i], 0, nodesBefore);
+            System.arraycopy(weightsVelocity[i], 0, newLayer.weightsVelocity[i], 0, nodesBefore);
+            System.arraycopy(weightsVelocitySquared[i], 0, newLayer.weightsVelocitySquared[i], 0, nodesBefore);
+            System.arraycopy(weightsGradient[i], 0, newLayer.weightsGradient[i], 0, nodesBefore);
+        }
+        return newLayer;
     }
 }

@@ -4,20 +4,58 @@ import java.util.Arrays;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
+/** A Collection of Kernels and output neurons specialized in Image Processing.
+ * <br><br> A Kernel is a 2D matrix of synapses that slides over the input matrix,
+ * summing the multiplication of input and weights to a single output neuron. This
+ * sliding motion creates a 2D output matrix, where each neuron in the output correspond
+ * to the result of running the kernel on a subsection of the input matrix.
+ * <br>When the input matrix is 3D, each layer of the input matrix is processed independently
+ * and the 3D output matrix is compressed into 2D matrix through addition.
+ * <br><br>Output Dimension: The Output layer will be a 3D matrix, where each kernel creates a layer of its own.
+ * The dimension of each kernel layer is:
+ * <br> -WIDTH = ceilDiv(inputWidth - kernelWidth + 1, strideWidth)
+ * <br> -HEIGHT = ceilDiv(inputHeight - kernelHeight + 1, strideHeight)
+ * <br><br>Requires: {@code inputWidth * inputHeight * inputLength} = {@code input.length} in {@link #calculateWeightedOutput(double[])}
+ */
 public class ConvolutionalLayer extends Layer {
 
+    /**
+     * An array of kernels, which each are a 2D matrix of weights
+     * <br>Layers: The kernel at that layer.
+     * <br>Rows & Columns: A 2D collection of weights connecting from the previous layer to
+     * a single neuron {@code n} in this layer.
+     */
     private final double[][][] kernels;
 
+    /**
+     * An array of kernel velocities, which each are a 2D matrix of weights velocities used in SGD with momentum
+     * <br>Layers: The kernel at that layer.
+     * <br>Rows & Columns: A 2D collection of weights connecting from the previous layer to
+     * a single neuron {@code n} in this layer.
+     */
     private final double[][][] kernelsVelocity;
 
+    /**
+     * An array of kernel velocities, which each are a 2D matrix of weights velocities for RMS-Prop
+     * <br>Layers: The kernel at that layer.
+     * <br>Rows & Columns: A 2D collection of weights connecting from the previous layer to
+     * a single neuron {@code n} in this layer.
+     */
     private final double[][][] kernelsVelocitySquared;
 
-    private final double[][][] kernelGradient;
+    /**
+     * An array of kernel gradients, which each are a 2D matrix of gradients of the loss function with respect to the weights
+     * <br>Layers: The kernel at that layer.
+     * <br>Rows & Columns: A 2D collection of weights connecting from the previous layer to
+     * a single neuron {@code n} in this layer.
+     */
+    private final double[][][] kernelsGradient;
 
     private final int inputWidth, inputHeight, inputLength;
     private final int kernelWidth, kernelHeight, numKernels;
     private final int outputWidth,outputHeight;
     private final int strideWidth, strideHeight;
+    private final boolean padding;
     private final int[][][] inputVectorToInputMatrix;
 
     public ConvolutionalLayer(int inputWidth, int inputHeight, int inputLength,
@@ -37,6 +75,7 @@ public class ConvolutionalLayer extends Layer {
         this.strideHeight = strideHeight;
         this.outputWidth = Math.ceilDiv(inputWidth - kernelWidth + 1, strideWidth);
         this.outputHeight = Math.ceilDiv(inputHeight - kernelHeight + 1, strideHeight);
+        this.padding = padding;
         final int paddingWidth,paddingHeight;
         if (padding) {
             paddingWidth = inputWidth * strideWidth - strideWidth - inputWidth + kernelWidth;
@@ -49,7 +88,7 @@ public class ConvolutionalLayer extends Layer {
         this.kernels = new double[numKernels][kernelWidth][kernelHeight];
         this.kernelsVelocity = new double[numKernels][kernelWidth][kernelHeight];
         this.kernelsVelocitySquared = new double[numKernels][kernelWidth][kernelHeight];
-        this.kernelGradient = new double[numKernels][kernelWidth][kernelHeight];
+        this.kernelsGradient = new double[numKernels][kernelWidth][kernelHeight];
 
         //initialize inputVectorToInputMatrix converter and find padding
         inputVectorToInputMatrix = new int[inputWidth + paddingWidth][inputHeight + paddingHeight][inputLength];
@@ -129,11 +168,11 @@ public class ConvolutionalLayer extends Layer {
                         for (int kernelX = 0; kernelX < kernelWidth; kernelX++)
                             for (int kernelY = 0; kernelY < kernelHeight; kernelY++) {
                                 int absXPos = inputVectorToInputMatrix[i * strideWidth + kernelX][j * strideHeight + kernelY][layer];
-                                assert Double.isFinite(kernelGradient[kernel][kernelX][kernelY]);
+                                assert Double.isFinite(kernelsGradient[kernel][kernelX][kernelY]);
                                 assert Double.isFinite(x[absXPos]);
 
 
-                                kernelGradient[kernel][kernelX][kernelY] += dz_dC[index] * x[absXPos];
+                                kernelsGradient[kernel][kernelX][kernelY] += dz_dC[index] * x[absXPos];
                                 da_dC[absXPos] += dz_dC[index] * kernels[kernel][kernelX][kernelY];
                             }
                     }
@@ -154,9 +193,9 @@ public class ConvolutionalLayer extends Layer {
         IntStream.range(0, kernelWidth).parallel().forEach(x -> {
             for (int y = 0; y < kernelHeight; y++)
                 for (int layer = 0; layer < numKernels; layer++) {
-                    assert Double.isFinite(kernelGradient[layer][x][y]);
-                    kernelsVelocity[layer][x][y] = momentum * kernelsVelocity[layer][x][y] + (1 - momentum) * kernelGradient[layer][x][y];
-                    kernelsVelocitySquared[layer][x][y] = beta * kernelsVelocitySquared[layer][x][y] + (1 - beta) * kernelGradient[layer][x][y] * kernelGradient[layer][x][y];
+                    assert Double.isFinite(kernelsGradient[layer][x][y]);
+                    kernelsVelocity[layer][x][y] = momentum * kernelsVelocity[layer][x][y] + (1 - momentum) * kernelsGradient[layer][x][y];
+                    kernelsVelocitySquared[layer][x][y] = beta * kernelsVelocitySquared[layer][x][y] + (1 - beta) * kernelsGradient[layer][x][y] * kernelsGradient[layer][x][y];
                     double correctedVelocity = kernelsVelocity[layer][x][y] / correctionMomentum;
                     double correctedVelocitySquared = kernelsVelocitySquared[layer][x][y] / correctionBeta;
                     kernels[layer][x][y] -= adjustedLearningRate * correctedVelocity / Math.sqrt(correctedVelocitySquared + epsilon);
@@ -176,6 +215,18 @@ public class ConvolutionalLayer extends Layer {
     }
 
     @Override
+    public void clearGradient() {
+        for (int i = 0; i < kernels.length; i++)
+            kernelsGradient[i] = new double[kernels[0].length][kernels[0][0].length];
+        Arrays.fill(biasGradient, 0);
+    }
+
+    @Override
+    public int getNumParameters() {
+        return kernels.length * kernels[0].length * kernels[0][0].length + super.getNumParameters();
+    }
+
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         for(int i=0;i<numKernels;i++){
@@ -188,14 +239,34 @@ public class ConvolutionalLayer extends Layer {
     }
 
     @Override
-    public int getNumParameters() {
-        return kernels.length * kernels[0].length * kernels[0][0].length + super.getNumParameters();
+    public boolean equals(Object obj) {
+        if(!(obj instanceof ConvolutionalLayer o) || super.equals(obj)) return false;
+
+        return inputWidth == o.inputWidth && inputHeight == o.inputHeight && inputLength == o.inputLength &&
+                kernelWidth == o.kernelWidth && kernelHeight == o.kernelHeight && numKernels == o.numKernels &&
+                outputWidth == o.outputWidth && outputHeight == o.outputHeight &&
+                strideWidth == o.strideWidth && strideHeight == o.strideHeight &&
+                padding == o.padding && Arrays.deepEquals(kernels, o.kernels) &&
+                Arrays.deepEquals(kernelsVelocity, o.kernelsVelocity) &&
+                Arrays.deepEquals(kernelsVelocitySquared, o.kernelsVelocitySquared) &&
+                Arrays.deepEquals(kernelsGradient, o.kernelsGradient) &&
+                Arrays.deepEquals(inputVectorToInputMatrix, o.inputVectorToInputMatrix);
     }
 
     @Override
-    public void clearGradient() {
-        for (int i = 0; i < kernels.length; i++)
-            kernelGradient[i] = new double[kernels[0].length][kernels[0][0].length];
-        Arrays.fill(biasGradient, 0);
+    public Object clone() {
+        ConvolutionalLayer newLayer = new ConvolutionalLayer(inputWidth,inputHeight,inputLength,kernelWidth,kernelHeight,numKernels,strideWidth,strideHeight,padding);
+        System.arraycopy(bias, 0, newLayer.bias, 0, nodes);
+        System.arraycopy(biasVelocity, 0, newLayer.biasVelocity, 0, nodes);
+        System.arraycopy(biasVelocitySquared, 0, newLayer.biasVelocitySquared, 0, nodes);
+        System.arraycopy(biasGradient, 0, newLayer.biasGradient, 0, nodes);
+        for(int i=0;i<kernels.length;i++) for(int j=0;j<kernels[0].length;j++){
+            System.arraycopy(kernels[i][j],0,newLayer.kernels[i][j],0,kernels[0].length);
+            System.arraycopy(kernelsVelocity[i][j],0,newLayer.kernelsVelocity[i][j],0,kernels[0].length);
+            System.arraycopy(kernelsVelocitySquared[i][j],0,newLayer.kernelsVelocitySquared[i][j],0,kernels[0].length);
+            System.arraycopy(kernelsGradient[i][j],0,newLayer.kernelsGradient[i][j],0,kernels[0].length);
+        }
+
+        return newLayer;
     }
 }

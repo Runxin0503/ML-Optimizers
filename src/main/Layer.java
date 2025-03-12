@@ -1,5 +1,6 @@
 package main;
 
+import java.util.Arrays;
 import java.util.function.Supplier;
 
 public abstract class Layer {
@@ -67,9 +68,26 @@ public abstract class Layer {
         return bias.length;
     }
 
+    @Override
     public abstract String toString();
 
-    public static void ArraysDeepToString(double[][] array,StringBuilder sb) {
+    @Override
+    public abstract Object clone();
+
+    @Override
+    public boolean equals(Object obj){
+        if(!(obj instanceof Layer o)) return false;
+        return nodes == o.nodes &&
+                Arrays.equals(bias, o.bias) &&
+                Arrays.equals(biasVelocity, o.biasVelocity) &&
+                Arrays.equals(biasVelocitySquared, o.biasVelocitySquared) &&
+                Arrays.equals(biasGradient, o.biasGradient);
+    }
+
+    /** A helper method for subclasses of Layer to use in their {@link #toString()} methods.
+     * <br>Unlike {@link Arrays#deepToString(Object[])}, this method truncates all weight numbers to 2 digits,
+     * making visualization easier and less clustered. */
+    static void ArraysDeepToString(double[][] array,StringBuilder sb) {
         for (int i = 0; i < array.length; i++) {
             sb.append("[");
             for (int j = 0; j < array[i].length; j++) {
