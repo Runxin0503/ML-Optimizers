@@ -1,6 +1,8 @@
 package main;
 
 import java.util.Arrays;
+import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -33,7 +35,7 @@ public class ConvolutionalLayer extends Layer {
      * <br>Rows & Columns: A 2D collection of weights connecting from the previous layer to
      * a single neuron {@code n} in this layer.
      */
-    private final double[][][] kernelsVelocity;
+    private double[][][] kernelsVelocity;
 
     /**
      * An array of kernel velocities, which each are a 2D matrix of weights velocities for RMS-Prop
@@ -41,7 +43,7 @@ public class ConvolutionalLayer extends Layer {
      * <br>Rows & Columns: A 2D collection of weights connecting from the previous layer to
      * a single neuron {@code n} in this layer.
      */
-    private final double[][][] kernelsVelocitySquared;
+    private double[][][] kernelsVelocitySquared;
 
     /**
      * An array of kernel gradients, which each are a 2D matrix of gradients of the loss function with respect to the weights
@@ -86,8 +88,6 @@ public class ConvolutionalLayer extends Layer {
         }
 
         this.kernels = new double[numKernels][kernelWidth][kernelHeight];
-        this.kernelsVelocity = new double[numKernels][kernelWidth][kernelHeight];
-        this.kernelsVelocitySquared = new double[numKernels][kernelWidth][kernelHeight];
         this.kernelsGradient = new double[numKernels][kernelWidth][kernelHeight];
 
         //initialize inputVectorToInputMatrix converter and find padding
@@ -119,14 +119,21 @@ public class ConvolutionalLayer extends Layer {
     }
 
     @Override
-    public void initialize(Supplier<Double> initializer) {
+    void initialize(Supplier<Double> initializer,Optimizer optimizer) {
+        super.initialize(initializer, optimizer);
+
+        if(optimizer == Optimizer.SGD_MOMENTUM || optimizer == Optimizer.ADAM)
+            this.kernelsVelocity = new double[numKernels][kernelWidth][kernelHeight];
+        if(optimizer == Optimizer.RMS_PROP || optimizer == Optimizer.ADAM)
+            this.kernelsVelocitySquared = new double[numKernels][kernelWidth][kernelHeight];
+
         for (int i = 0; i < kernelWidth; i++)
             for (int j = 0; j < kernelHeight; j++)
                 for (int k = 0; k < numKernels; k++)
                     kernels[k][i][j] = initializer.get();
     }
 
-    /** Applies the weights and biases of this java.Layer to the given input. Returns a new array. */
+    /** Applies the weights and biases of this Layer to the given input. Returns a new array. */
     public double[] calculateWeightedOutput(double[] input) {
         assert inputWidth * inputHeight * inputLength == input.length;
 
@@ -156,7 +163,7 @@ public class ConvolutionalLayer extends Layer {
      * @return da_dC where a is the activation function of the layer before this one
      */
     @Override
-    public double[] updateGradient(double[] dz_dC, double[] x) {
+    double[] updateGradient(double[] dz_dC, double[] x) {
         double[] da_dC = new double[inputWidth * inputHeight * inputLength];
 
         IntStream.range(0, numKernels).parallel().forEach(kernel -> {
@@ -183,39 +190,49 @@ public class ConvolutionalLayer extends Layer {
     }
 
     /**
-     * Applies the {@code weightGradient} and {@code biasGradient} to the weight and bias of this java.Layer.
+     * Applies the {@code weightGradient} and {@code biasGradient} to the weight and bias of this Layer.
      * <br>Updates the weight and bias's gradient velocity vectors accordingly as well.
      */
     @Override
-    public void applyGradient(double adjustedLearningRate, double momentum, double beta, double epsilon) {
-        double correctionMomentum = 1 - Math.pow(momentum, t);
-        double correctionBeta = 1 - Math.pow(beta, t);
-        IntStream.range(0, kernelWidth).parallel().forEach(x -> {
-            for (int y = 0; y < kernelHeight; y++)
-                for (int layer = 0; layer < numKernels; layer++) {
+    void applyGradient(Optimizer optimizer, double adjustedLearningRate, double momentum, double beta, double epsilon) {
+        IntStream.range(0, numKernels).parallel().forEach(layer -> {
+            BiConsumer<Integer,Integer> updateRule;
+            switch (optimizer){
+                case SGD -> updateRule = (x,y) -> kernels[layer][x][y] -= adjustedLearningRate * kernelsGradient[layer][x][y];
+                case SGD_MOMENTUM -> updateRule = (x,y) -> {
+                    kernelsVelocity[layer][x][y] = kernelsVelocity[layer][x][y] * momentum + (1 - momentum) * kernelsGradient[layer][x][y];
+                    kernels[layer][x][y] -= adjustedLearningRate * kernelsVelocity[layer][x][y];
+                };
+                case RMS_PROP -> updateRule = (x,y) -> {
+                    kernelsVelocitySquared[layer][x][y] = beta * kernelsVelocitySquared[layer][x][y] + (1 - beta) * (kernelsGradient[layer][x][y] * kernelsGradient[layer][x][y]);
+                    kernels[layer][x][y] -= adjustedLearningRate * kernelsGradient[layer][x][y] / Math.sqrt(kernelsGradient[layer][x][y] + epsilon);
+                };
+                case ADAM -> {
+                    double correctionMomentum = 1 - Math.pow(momentum, t);
+                    double correctionBeta = 1 - Math.pow(beta, t);
+                    updateRule = (x,y) -> {
+                        kernelsVelocity[layer][x][y] = momentum * kernelsVelocity[layer][x][y] + (1 - momentum) * kernelsGradient[layer][x][y];
+                        kernelsVelocitySquared[layer][x][y] = beta * kernelsVelocitySquared[layer][x][y] + (1 - beta) * kernelsGradient[layer][x][y] * kernelsGradient[layer][x][y];
+                        double correctedVelocity = kernelsVelocity[layer][x][y] / correctionMomentum;
+                        double correctedVelocitySquared = kernelsVelocitySquared[layer][x][y] / correctionBeta;
+                        kernels[layer][x][y] -= adjustedLearningRate * correctedVelocity / Math.sqrt(correctedVelocitySquared + epsilon);
+                        assert Double.isFinite(kernels[layer][x][y]) : "\ncorrectedVelocity: " + correctedVelocity + "\ncorrectedVelocitySquared: " + correctedVelocitySquared + "\nweightsVelocity: " + kernelsVelocity[x][y][layer] + "\nweightsVelocitySquared: " + kernelsVelocitySquared[x][y][layer];                    };
+                }
+                case null, default -> throw new IllegalStateException("Unexpected value: " + optimizer);
+            }
+
+            for (int x = 0; x < kernelWidth; x++)
+                for (int y = 0; y < kernelHeight; y++) {
                     assert Double.isFinite(kernelsGradient[layer][x][y]);
-                    kernelsVelocity[layer][x][y] = momentum * kernelsVelocity[layer][x][y] + (1 - momentum) * kernelsGradient[layer][x][y];
-                    kernelsVelocitySquared[layer][x][y] = beta * kernelsVelocitySquared[layer][x][y] + (1 - beta) * kernelsGradient[layer][x][y] * kernelsGradient[layer][x][y];
-                    double correctedVelocity = kernelsVelocity[layer][x][y] / correctionMomentum;
-                    double correctedVelocitySquared = kernelsVelocitySquared[layer][x][y] / correctionBeta;
-                    kernels[layer][x][y] -= adjustedLearningRate * correctedVelocity / Math.sqrt(correctedVelocitySquared + epsilon);
-                    assert Double.isFinite(kernels[layer][x][y]) : "\ncorrectedVelocity: " + correctedVelocity + "\ncorrectedVelocitySquared: " + correctedVelocitySquared + "\nweightsVelocity: " + kernelsVelocity[x][y][layer] + "\nweightsVelocitySquared: " + kernelsVelocitySquared[x][y][layer];
+                    updateRule.accept(x,y);
                 }
         });
-        IntStream.range(0, bias.length).parallel().forEach(i -> {
-            assert Double.isFinite(biasGradient[i]);
-            biasVelocity[i] = momentum * biasVelocity[i] + (1 - momentum) * biasGradient[i];
-            biasVelocitySquared[i] = beta * biasVelocitySquared[i] + (1 - beta) * biasGradient[i] * biasGradient[i];
-            double correctedVelocity = biasVelocity[i] / correctionMomentum;
-            double correctedVelocitySquared = biasVelocitySquared[i] / correctionBeta;
-            bias[i] -= adjustedLearningRate * correctedVelocity / Math.sqrt(correctedVelocitySquared + epsilon);
-            assert Double.isFinite(bias[i]) : "\ncorrectedVelocity: " + correctedVelocity + "\ncorrectedVelocitySquared: " + correctedVelocitySquared + "\nbiasVelocity: " + biasVelocity[i] + "\nbiasVelocitySquared: " + biasVelocitySquared[i];
-        });
-        t++;
+
+        super.applyGradient(optimizer,adjustedLearningRate,momentum,beta,epsilon);
     }
 
     @Override
-    public void clearGradient() {
+    void clearGradient() {
         for (int i = 0; i < kernels.length; i++)
             kernelsGradient[i] = new double[kernels[0].length][kernels[0][0].length];
         Arrays.fill(biasGradient, 0);
@@ -257,13 +274,21 @@ public class ConvolutionalLayer extends Layer {
     public Object clone() {
         ConvolutionalLayer newLayer = new ConvolutionalLayer(inputWidth,inputHeight,inputLength,kernelWidth,kernelHeight,numKernels,strideWidth,strideHeight,padding);
         System.arraycopy(bias, 0, newLayer.bias, 0, nodes);
-        System.arraycopy(biasVelocity, 0, newLayer.biasVelocity, 0, nodes);
-        System.arraycopy(biasVelocitySquared, 0, newLayer.biasVelocitySquared, 0, nodes);
+        if(!Objects.isNull(biasVelocity)) {
+            newLayer.biasVelocity = new double[biasVelocity.length];
+            newLayer.kernelsVelocity = new double[kernelsVelocity.length][kernelsVelocity[0].length][kernelsVelocity[0][0].length];
+            System.arraycopy(biasVelocity, 0, newLayer.biasVelocity, 0, nodes);
+        }
+        if(!Objects.isNull(biasVelocitySquared)) {
+            newLayer.biasVelocitySquared = new double[biasVelocitySquared.length];
+            newLayer.kernelsVelocitySquared = new double[kernelsVelocitySquared.length][kernelsVelocitySquared[0].length][kernelsVelocitySquared[0][0].length];
+            System.arraycopy(biasVelocitySquared, 0, newLayer.biasVelocitySquared, 0, nodes);
+        }
         System.arraycopy(biasGradient, 0, newLayer.biasGradient, 0, nodes);
         for(int i=0;i<kernels.length;i++) for(int j=0;j<kernels[0].length;j++){
             System.arraycopy(kernels[i][j],0,newLayer.kernels[i][j],0,kernels[0].length);
-            System.arraycopy(kernelsVelocity[i][j],0,newLayer.kernelsVelocity[i][j],0,kernels[0].length);
-            System.arraycopy(kernelsVelocitySquared[i][j],0,newLayer.kernelsVelocitySquared[i][j],0,kernels[0].length);
+            if(!Objects.isNull(kernelsVelocity)) System.arraycopy(kernelsVelocity[i][j],0,newLayer.kernelsVelocity[i][j],0,kernels[0].length);
+            if(!Objects.isNull(kernelsVelocitySquared))System.arraycopy(kernelsVelocitySquared[i][j],0,newLayer.kernelsVelocitySquared[i][j],0,kernels[0].length);
             System.arraycopy(kernelsGradient[i][j],0,newLayer.kernelsGradient[i][j],0,kernels[0].length);
         }
 

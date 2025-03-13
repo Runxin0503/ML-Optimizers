@@ -25,19 +25,24 @@ public class NN {
     private double temperature;
 
     /**
-     * The java.Activation Function for hidden layers in this Neural Network
+     * The Activation Function for hidden layers in this Neural Network
      */
     private final Activation hiddenAF;
 
     /**
-     * The java.Activation Function for the output / final layer in this Neural Network
+     * The Activation Function for the output / final layer in this Neural Network
      */
     private final Activation outputAF;
 
     /**
-     * The java.Cost Function for this Neural Network
+     * The Cost Function for this Neural Network
      */
     private final Cost costFunction;
+
+    /**
+     * The Optimizer class used for this Neural Network's backpropagation and training process.
+     */
+    private final Optimizer optimizer;
 
     /**
      * "Trains" the given Neural Network class using the given inputs and expected outputs.
@@ -70,7 +75,7 @@ public class NN {
                     throw new RuntimeException(e);
                 }
 
-            NN.applyGradient(learningRate / testCaseInputs.length, momentum, beta, epsilon);
+            NN.applyGradient(NN.optimizer,learningRate / testCaseInputs.length, momentum, beta, epsilon);
         }
     }
 
@@ -92,14 +97,15 @@ public class NN {
 
             NN.clearGradient();
             NN.backPropagate(input,output);
-            NN.applyGradient(learningRate, momentum, beta, epsilon);
+            NN.applyGradient(NN.optimizer,learningRate, momentum, beta, epsilon);
         }
     }
 
-    private NN(int inputNum, int outputNum, double temperature,Activation hiddenAF, Activation outputAF, Cost costFunction, Layer[] layers) {
+    private NN(Optimizer optimizer,int inputNum, int outputNum, double temperature,Activation hiddenAF, Activation outputAF, Cost costFunction, Layer[] layers) {
         this.inputNum = inputNum;
         this.outputNum = outputNum;
         this.layers = layers;
+        this.optimizer = optimizer;
 
         this.temperature = temperature;
         this.hiddenAF = hiddenAF;
@@ -195,10 +201,10 @@ public class NN {
     /**
      * Applies the gradients of each layer in this Neural Network to itself
      */
-    private void applyGradient(double adjustedLearningRate, double momentum, double beta, double epsilon) {
+    private void applyGradient(Optimizer optimizer, double adjustedLearningRate, double momentum, double beta, double epsilon) {
         assert Double.isFinite(adjustedLearningRate);
         for (Layer layer : layers)
-            layer.applyGradient(adjustedLearningRate, momentum, beta, epsilon);
+            layer.applyGradient(optimizer,adjustedLearningRate, momentum, beta, epsilon);
     }
 
     @Override
@@ -219,7 +225,7 @@ public class NN {
     public Object clone() {
         Layer[] newLayers = new Layer[layers.length];
         for(int i=0;i<layers.length;i++) newLayers[i] = (Layer)layers[i].clone();
-        return new NN(inputNum, outputNum, temperature, hiddenAF, outputAF, costFunction, newLayers);
+        return new NN(optimizer,inputNum, outputNum, temperature, hiddenAF, outputAF, costFunction, newLayers);
     }
 
     @Override
@@ -238,6 +244,7 @@ public class NN {
         private Activation outputAF = null;
         private Cost costFunction = null;
         private double temperature = 1;
+        private Optimizer optimizer = Optimizer.ADAM;
         private final ArrayList<Layer> layers = new ArrayList<>();
 
         public NetworkBuilder setInputNum(int inputNum) {
@@ -288,12 +295,17 @@ public class NN {
             return this;
         }
 
+        public NetworkBuilder setOptimizer(Optimizer optimizer){
+            this.optimizer = optimizer;
+            return this;
+        }
+
         public NN build() throws MissingInformationException {
-            if (inputNum == -1 || outputNum == -1 || hiddenAF == null || outputAF == null || costFunction == null || layers.isEmpty())
+            if (inputNum == -1 || outputNum == -1 || hiddenAF == null || outputAF == null || costFunction == null || layers.isEmpty() || optimizer == null)
                 throw new MissingInformationException();
             for (Layer layer : layers)
-                layer.initialize(Activation.getInitializer(hiddenAF,inputNum,outputNum));
-            return new NN(inputNum, outputNum, temperature, hiddenAF, outputAF, costFunction, layers.toArray(new Layer[0]));
+                layer.initialize(Activation.getInitializer(hiddenAF,inputNum,outputNum),optimizer);
+            return new NN(optimizer,inputNum, outputNum, temperature, hiddenAF, outputAF, costFunction, layers.toArray(new Layer[0]));
         }
     }
 
