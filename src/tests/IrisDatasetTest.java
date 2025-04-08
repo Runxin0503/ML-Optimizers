@@ -1,20 +1,16 @@
 package tests;
 
-import main.Activation;
-import main.Cost;
-import main.NN;
+import enums.Activation;
+import enums.Cost;
+import Network.NN;
 import org.junit.jupiter.api.RepeatedTest;
-import org.junit.jupiter.api.Test;
 
-import javax.management.relation.InvalidRoleInfoException;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

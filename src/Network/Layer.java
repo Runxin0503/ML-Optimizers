@@ -1,4 +1,6 @@
-package main;
+package Network;
+
+import enums.Optimizer;
 
 import java.util.Arrays;
 import java.util.function.Consumer;
@@ -61,7 +63,7 @@ public abstract class Layer {
      */
     void applyGradient(Optimizer optimizer, double adjustedLearningRate, double momentum, double beta, double epsilon) {
         Consumer<Integer> updateRule;
-        switch (optimizer){
+        switch (optimizer) {
             case SGD -> updateRule = i -> bias[i] -= adjustedLearningRate * biasGradient[i];
             case SGD_MOMENTUM -> updateRule = i -> {
                 biasVelocity[i] = biasVelocity[i] * momentum + (1 - momentum) * biasGradient[i];

@@ -1,8 +1,8 @@
 package tests;
 
-import main.Activation;
-import main.Cost;
-import main.NN;
+import enums.Activation;
+import enums.Cost;
+import Network.NN;
 import org.junit.jupiter.api.RepeatedTest;
 import java.util.Random;
 import java.util.function.Function;

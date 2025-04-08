@@ -1,4 +1,8 @@
-package main;
+package Network;
+
+import enums.Activation;
+import enums.Cost;
+import enums.Optimizer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -75,7 +79,7 @@ public class NN {
                     throw new RuntimeException(e);
                 }
 
-            NN.applyGradient(NN.optimizer,learningRate / testCaseInputs.length, momentum, beta, epsilon);
+            NN.applyGradient(NN.optimizer, learningRate / testCaseInputs.length, momentum, beta, epsilon);
         }
     }
 
@@ -89,19 +93,19 @@ public class NN {
      * @param epsilon a hyper-parameter that's typically very small to avoid divide by zero errors
      * @param outputIndex the index of the element to optimize
      */
-    public static void learnSingleOutput(NN NN,double learningRate, double momentum, double beta, double epsilon, double[] input, int outputIndex, double expectedOutput) {
+    public static void learnSingleOutput(NN NN, double learningRate, double momentum, double beta, double epsilon, double[] input, int outputIndex, double expectedOutput) {
         synchronized (NN) {
             double[] output = NN.calculateOutput(input);
             assert 0 <= outputIndex && outputIndex < NN.outputNum;
             output[outputIndex] = expectedOutput;
 
             NN.clearGradient();
-            NN.backPropagate(input,output);
-            NN.applyGradient(NN.optimizer,learningRate, momentum, beta, epsilon);
+            NN.backPropagate(input, output);
+            NN.applyGradient(NN.optimizer, learningRate, momentum, beta, epsilon);
         }
     }
 
-    private NN(Optimizer optimizer,int inputNum, int outputNum, double temperature,Activation hiddenAF, Activation outputAF, Cost costFunction, Layer[] layers) {
+    private NN(Optimizer optimizer, int inputNum, int outputNum, double temperature, Activation hiddenAF, Activation outputAF, Cost costFunction, Layer[] layers) {
         this.inputNum = inputNum;
         this.outputNum = outputNum;
         this.layers = layers;
@@ -135,7 +139,7 @@ public class NN {
 
         //exploration vs exploitation. Apply temperature in softmax function for RL algorithms
         if (outputAF == Activation.softmax)
-            for(int i=0;i<result.length;i++)
+            for (int i = 0; i < result.length; i++)
                 result[i] /= temperature;
 
         result = outputAF.calculate(result);
@@ -171,25 +175,25 @@ public class NN {
         double[][] zs = new double[layers.length][];
         double[][] xs = new double[layers.length][];
         xs[0] = input;
-        for(int i=0;i<layers.length-1;i++){
+        for (int i = 0; i < layers.length - 1; i++) {
             zs[i] = layers[i].calculateWeightedOutput(xs[i]);
-            xs[i+1] = hiddenAF.calculate(zs[i]);
+            xs[i + 1] = hiddenAF.calculate(zs[i]);
         }
-        zs[layers.length-1] = layers[layers.length-1].calculateWeightedOutput(xs[layers.length-1]);
+        zs[layers.length - 1] = layers[layers.length - 1].calculateWeightedOutput(xs[layers.length - 1]);
         if (outputAF == Activation.softmax)
-            for(int i=0;i<zs[layers.length-1].length;i++)
-                zs[layers.length-1][i] /= temperature;
+            for (int i = 0; i < zs[layers.length - 1].length; i++)
+                zs[layers.length - 1][i] /= temperature;
 
-        double[] output = outputAF.calculate(zs[layers.length-1]);
-        if(outputAF == Activation.softmax)
-            for(int i=0;i<output.length;i++)
+        double[] output = outputAF.calculate(zs[layers.length - 1]);
+        if (outputAF == Activation.softmax)
+            for (int i = 0; i < output.length; i++)
                 output[i] /= temperature;
 
-        double[] outputLayer_dz_dC = outputAF.derivative(zs[layers.length-1],costFunction.derivative(output,expectedOutput));
-        double[] nextLayer_da_dC = layers[layers.length-1].updateGradient(outputLayer_dz_dC,xs[layers.length-1]);
-        for(int i=layers.length-2;i>=0;i--){
-            double[] dz_dC = hiddenAF.derivative(zs[i],nextLayer_da_dC);
-            nextLayer_da_dC = layers[i].updateGradient(dz_dC,xs[i]);
+        double[] outputLayer_dz_dC = outputAF.derivative(zs[layers.length - 1], costFunction.derivative(output, expectedOutput));
+        double[] nextLayer_da_dC = layers[layers.length - 1].updateGradient(outputLayer_dz_dC, xs[layers.length - 1]);
+        for (int i = layers.length - 2; i >= 0; i--) {
+            double[] dz_dC = hiddenAF.derivative(zs[i], nextLayer_da_dC);
+            nextLayer_da_dC = layers[i].updateGradient(dz_dC, xs[i]);
         }
     }
 
@@ -204,13 +208,13 @@ public class NN {
     private void applyGradient(Optimizer optimizer, double adjustedLearningRate, double momentum, double beta, double epsilon) {
         assert Double.isFinite(adjustedLearningRate);
         for (Layer layer : layers)
-            layer.applyGradient(optimizer,adjustedLearningRate, momentum, beta, epsilon);
+            layer.applyGradient(optimizer, adjustedLearningRate, momentum, beta, epsilon);
     }
 
     @Override
     public String toString() {
         int totalParameters = 0;
-        for(Layer layer : layers) totalParameters+=layer.getNumParameters();
+        for (Layer layer : layers) totalParameters += layer.getNumParameters();
 
         StringBuilder sb = new StringBuilder();
         sb.append("Network with ").append(totalParameters).append(" parameters\n");
@@ -224,13 +228,13 @@ public class NN {
     @Override
     public Object clone() {
         Layer[] newLayers = new Layer[layers.length];
-        for(int i=0;i<layers.length;i++) newLayers[i] = (Layer)layers[i].clone();
-        return new NN(optimizer,inputNum, outputNum, temperature, hiddenAF, outputAF, costFunction, newLayers);
+        for (int i = 0; i < layers.length; i++) newLayers[i] = (Layer) layers[i].clone();
+        return new NN(optimizer, inputNum, outputNum, temperature, hiddenAF, outputAF, costFunction, newLayers);
     }
 
     @Override
     public boolean equals(Object obj) {
-        if(!(obj instanceof NN o)) return false;
+        if (!(obj instanceof NN o)) return false;
         return inputNum == o.inputNum && outputNum == o.outputNum &&
                 temperature == o.temperature &&
                 hiddenAF == o.hiddenAF && outputAF == o.outputAF &&
@@ -249,7 +253,18 @@ public class NN {
 
         public NetworkBuilder setInputNum(int inputNum) {
             this.inputNum = inputNum;
-            if (!layers.isEmpty()) layers.set(0, new DenseLayer(inputNum, layers.getFirst().nodes));
+            if (!layers.isEmpty()) {
+                Layer newLayer;
+                if (layers.getFirst() instanceof DenseLayer d)
+                    newLayer = new DenseLayer(inputNum, d.nodes);
+                else if (layers.getFirst() instanceof ConvolutionalLayer)
+                    throw new UnsupportedOperationException(
+                            "Attempted to declare NN.NetworkBuilder.setInputNum after adding Convolutional layers.");
+                else if (layers.getFirst() instanceof LSTMLayer l)
+                    newLayer = new LSTMLayer(inputNum, l.nodes);
+                else throw new RuntimeException();
+                layers.set(0, newLayer);
+            }
             return this;
         }
 
@@ -263,14 +278,21 @@ public class NN {
         public NetworkBuilder addConvolutionalLayer(int inputWidth, int inputHeight, int inputLength,
                                                     int kernelWidth, int kernelHeight, int numKernels,
                                                     int strideWidth, int strideHeight) {
-            return addConvolutionalLayer(inputWidth,inputHeight,inputLength,kernelWidth,kernelHeight,numKernels,strideWidth,strideHeight,false);
+            return addConvolutionalLayer(inputWidth, inputHeight, inputLength, kernelWidth, kernelHeight, numKernels, strideWidth, strideHeight, false);
         }
 
         public NetworkBuilder addConvolutionalLayer(int inputWidth, int inputHeight, int inputLength,
                                                     int kernelWidth, int kernelHeight, int numKernels,
-                                                    int strideWidth, int strideHeight,boolean padding) {
+                                                    int strideWidth, int strideHeight, boolean padding) {
             assert (layers.isEmpty() ? inputNum : layers.getLast().nodes) == inputWidth * inputHeight * inputLength;
             layers.add(new ConvolutionalLayer(inputWidth, inputHeight, inputLength, kernelWidth, kernelHeight, numKernels, strideWidth, strideHeight, padding));
+            outputNum = layers.getLast().nodes;
+            return this;
+        }
+
+        public NetworkBuilder addLSTMLayer(int nodes) {
+            if (layers.isEmpty()) layers.add(new LSTMLayer(inputNum, nodes));
+            else layers.add(new LSTMLayer(layers.getLast().nodes, nodes));
             outputNum = layers.getLast().nodes;
             return this;
         }
@@ -295,7 +317,7 @@ public class NN {
             return this;
         }
 
-        public NetworkBuilder setOptimizer(Optimizer optimizer){
+        public NetworkBuilder setOptimizer(Optimizer optimizer) {
             this.optimizer = optimizer;
             return this;
         }
@@ -304,8 +326,8 @@ public class NN {
             if (inputNum == -1 || outputNum == -1 || hiddenAF == null || outputAF == null || costFunction == null || layers.isEmpty() || optimizer == null)
                 throw new MissingInformationException();
             for (Layer layer : layers)
-                layer.initialize(Activation.getInitializer(hiddenAF,inputNum,outputNum),optimizer);
-            return new NN(optimizer,inputNum, outputNum, temperature, hiddenAF, outputAF, costFunction, layers.toArray(new Layer[0]));
+                layer.initialize(Activation.getInitializer(hiddenAF, inputNum, outputNum), optimizer);
+            return new NN(optimizer, inputNum, outputNum, temperature, hiddenAF, outputAF, costFunction, layers.toArray(new Layer[0]));
         }
     }
 

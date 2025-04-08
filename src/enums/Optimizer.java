@@ -1,4 +1,4 @@
-package main;
+package enums;
 
 /** An interface that documents the required elements of each optimizer for Neural Networks
  * while also keeping track of the update rule for each optimizer. */

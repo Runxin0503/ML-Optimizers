@@ -1,4 +1,6 @@
-package main;
+package Network;
+
+import enums.Optimizer;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -43,7 +45,7 @@ public class DenseLayer extends Layer {
     }
 
     @Override
-    void initialize(Supplier<Double> initializer,Optimizer optimizer){
+    void initialize(Supplier<Double> initializer, Optimizer optimizer){
         super.initialize(initializer,optimizer);
 
         if(optimizer == Optimizer.SGD_MOMENTUM || optimizer == Optimizer.ADAM)

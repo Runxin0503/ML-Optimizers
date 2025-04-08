@@ -1,15 +1,13 @@
 package tests;
 
-import main.Activation;
-import main.Cost;
-import main.NN;
+import enums.Activation;
+import enums.Cost;
+import Network.NN;
 import org.junit.jupiter.api.RepeatedTest;
-import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

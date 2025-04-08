@@ -1,4 +1,4 @@
-package main;
+package enums;
 
 import java.util.Arrays;
 import java.util.Random;

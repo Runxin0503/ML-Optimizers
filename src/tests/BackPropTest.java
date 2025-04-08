@@ -1,12 +1,10 @@
 package tests;
 
-import main.Activation;
-import main.Cost;
-import main.DenseLayer;
-import main.NN;
+import enums.Activation;
+import enums.Cost;
+import Network.NN;
 import org.junit.jupiter.api.RepeatedTest;
-import java.util.Random;
-import java.util.function.Function;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
