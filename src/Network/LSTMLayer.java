@@ -4,6 +4,7 @@ import Utils.Linalg;
 import enums.Activation;
 import enums.Optimizer;
 
+import java.util.Arrays;
 import java.util.function.Supplier;
 
 /** A type of RNN Layer that remembers both short-term and long-term data from past training */
@@ -133,6 +134,13 @@ public class LSTMLayer extends Layer {
     /** Returns an array of {@code Previous Output} and {@code Previous Candidate Data} used in RNNs. */
     public double[][] getPrevMemories() {
         return new double[][]{hPrev, CPrev};
+    }
+
+
+    /** Returns an array of {@code Previous Output} and {@code Previous Candidate Data} used in RNNs. */
+    public void clearPrevMemories() {
+        Arrays.fill(hPrev,0);
+        Arrays.fill(CPrev,0);
     }
 
     @Override

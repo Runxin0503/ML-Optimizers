@@ -49,8 +49,12 @@ public class NN {
     private final Optimizer optimizer;
 
     /**
-     * "Trains" the given Neural Network class using the given inputs and expected outputs.
-     * <br>Uses ADAM as training algorithm, requires Learning Rate, beta, and epsilon hyper-parameter.
+     * "Trains" the given Neural Network class using the given batches of input and expected output.
+     * <br>Depending on the {@link Optimizer}, this function requires different parameters:
+     * <br>-{@link Optimizer#SGD}: Learning Rate
+     * <br>-{@link Optimizer#SGD_MOMENTUM}: Learning Rate, momentum
+     * <br>-{@link Optimizer#RMS_PROP}: Learning Rate, beta, and epsilon
+     * <br>-{@link Optimizer#ADAM}: Learning Rate, momentum, beta, and epsilon
      * @param learningRate a hyper-parameter dictating how fast this Neural Network 'learn' from the given inputs
      * @param momentum a hyper-parameter dictating how much of the previous SGD velocity to keep. [0~1]
      * @param beta a hyper-parameter dictating how much of the previous RMS-Prop velocity to keep. [0~1]
@@ -84,10 +88,45 @@ public class NN {
     }
 
     /**
+     * "Trains" the given Neural Network class using the given an EPISODE of input and expected output.
+     * <br>Typically used in RNNs where data accumulation from previous inputs is important. The training
+     * algorithm runs in sequence instead of in parallel.
+     * <br>Depending on the {@link Optimizer}, this function requires different parameters:
+     * <br>-{@link Optimizer#SGD}: Learning Rate
+     * <br>-{@link Optimizer#SGD_MOMENTUM}: Learning Rate, momentum
+     * <br>-{@link Optimizer#RMS_PROP}: Learning Rate, beta, and epsilon
+     * <br>-{@link Optimizer#ADAM}: Learning Rate, momentum, beta, and epsilon
+     * @param learningRate a hyper-parameter dictating how fast this Neural Network 'learn' from the given inputs
+     * @param momentum a hyper-parameter dictating how much of the previous SGD velocity to keep. [0~1]
+     * @param beta a hyper-parameter dictating how much of the previous RMS-Prop velocity to keep. [0~1]
+     * @param epsilon a hyper-parameter that's typically very small to avoid divide by zero errors
+     * @param n The number of episodic inputs to go through. Requires: {@code inputs.length} >= {@code n}.
+     */
+    public static void learn(NN NN, double learningRate, double momentum, double beta, double epsilon, double[][] episodeInputs, double[][] episodeOutputs, int n) {
+        assert episodeInputs.length == episodeOutputs.length;
+        for (int i = 0; i < episodeInputs.length; ++i)
+            assert episodeInputs[i].length == NN.inputNum && episodeOutputs[i].length == NN.outputNum;
+        //prevents other threads from calling learn on the same Neural Network
+        synchronized (NN) {
+            for (Layer layer : NN.layers) if (layer instanceof LSTMLayer l) l.clearPrevMemories();
+            for (int i=0;i<n;i++){
+                NN.clearGradient();
+
+                NN.backPropagate(episodeInputs[i],episodeOutputs[i]);
+
+                NN.applyGradient(NN.optimizer, learningRate / episodeInputs.length, momentum, beta, epsilon);
+            }
+        }
+    }
+
+    /**
      * Runs the optimizer in this Neural Network class with the given input and a single expected output.
      * <br>Unlike {@link #learn}, this function does backpropagation on a single output element instead of an entire output vector.
-     * <br>Uses ADAM as training algorithm, requires Learning Rate, beta, and epsilon hyper-parameter.
-     * @param learningRate a hyper-parameter dictating how fast this Neural Network 'learn' from the given inputs
+     * <br>Depending on the {@link Optimizer}, this function requires different parameters:
+     * <br>-{@link Optimizer#SGD}: Learning Rate
+     * <br>-{@link Optimizer#SGD_MOMENTUM}: Learning Rate, momentum
+     * <br>-{@link Optimizer#RMS_PROP}: Learning Rate, beta, and epsilon
+     * <br>-{@link Optimizer#ADAM}: Learning Rate, momentum, beta, and epsilon     * @param learningRate a hyper-parameter dictating how fast this Neural Network 'learn' from the given inputs
      * @param momentum a hyper-parameter dictating how much of the previous SGD velocity to keep. [0~1]
      * @param beta a hyper-parameter dictating how much of the previous RMS-Prop velocity to keep. [0~1]
      * @param epsilon a hyper-parameter that's typically very small to avoid divide by zero errors
@@ -146,6 +185,28 @@ public class NN {
 
         assert result.length == outputNum;
         return result;
+    }
+
+    /**
+     * Clears all hidden states and memories of RNN layers before passing {@code input}
+     * as a new "episode" through this Network. Outputs the immediate output
+     * of the n'th element in {@code input}, similar to {@link #calculateOutput}.
+     * <br>If no RNN layers are present in this network, this function behaves
+     * identically to {@link #calculateOutput}.
+     * @param n The number of episodic inputs to go through. Requires: {@code inputs.length} >= {@code n}.
+     */
+    public double[] calculateOutputs(double[][] inputs, int n) {
+        assert inputs.length >= n;
+        for (double[] input : inputs) assert input.length == inputNum;
+
+        for (Layer layer : layers)
+            if (layer instanceof LSTMLayer l)
+                l.clearPrevMemories();
+
+        for (int i=0;i<n-1;i++){
+            calculateOutput(inputs[i]);
+        }
+        return calculateOutput(inputs[n]);
     }
 
     /**
