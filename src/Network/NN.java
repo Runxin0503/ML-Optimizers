@@ -172,13 +172,21 @@ public class NN {
      * backpropagation.
      */
     public void backPropagate(double[] input, double[] expectedOutput) {
+        //z = immediate output of every layer (right before activation function)
+        //x = immediate input of every layer (either is input or is right after activation function)
+        //memoryMatrix = memory components for RNN layers
         double[][] zs = new double[layers.length][];
         double[][] xs = new double[layers.length][];
+        double[][][] memoryMatrix = new double[layers.length][][];
         xs[0] = input;
         for (int i = 0; i < layers.length - 1; i++) {
+            //get memory cells from RNN layer
+            if (layers[i] instanceof LSTMLayer l) memoryMatrix[i] = l.getPrevMemories();
+
             zs[i] = layers[i].calculateWeightedOutput(xs[i]);
             xs[i + 1] = hiddenAF.calculate(zs[i]);
         }
+        if (layers[layers.length - 1] instanceof LSTMLayer l) memoryMatrix[layers.length - 1] = l.getPrevMemories();
         zs[layers.length - 1] = layers[layers.length - 1].calculateWeightedOutput(xs[layers.length - 1]);
         if (outputAF == Activation.softmax)
             for (int i = 0; i < zs[layers.length - 1].length; i++)
@@ -190,10 +198,20 @@ public class NN {
                 output[i] /= temperature;
 
         double[] outputLayer_dz_dC = outputAF.derivative(zs[layers.length - 1], costFunction.derivative(output, expectedOutput));
-        double[] nextLayer_da_dC = layers[layers.length - 1].updateGradient(outputLayer_dz_dC, xs[layers.length - 1]);
+        double[] nextLayer_da_dC;
+        if (layers[layers.length - 1] instanceof LSTMLayer l)
+            nextLayer_da_dC = l.updateGradient(outputLayer_dz_dC, xs[layers.length - 1],
+                    memoryMatrix[layers.length - 1][0], memoryMatrix[layers.length - 1][1]);
+        else
+            nextLayer_da_dC = layers[layers.length - 1].updateGradient(outputLayer_dz_dC, xs[layers.length - 1]);
+
         for (int i = layers.length - 2; i >= 0; i--) {
             double[] dz_dC = hiddenAF.derivative(zs[i], nextLayer_da_dC);
-            nextLayer_da_dC = layers[i].updateGradient(dz_dC, xs[i]);
+            if (layers[i] instanceof LSTMLayer l)
+                nextLayer_da_dC = l.updateGradient(dz_dC, xs[i],
+                        memoryMatrix[i][0], memoryMatrix[i][1]);
+            else
+                nextLayer_da_dC = layers[i].updateGradient(dz_dC, xs[i]);
         }
     }
 

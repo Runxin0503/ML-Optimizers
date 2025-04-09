@@ -58,7 +58,6 @@ public class DenseLayer extends Layer {
                 weights[i][j] = initializer.get();
     }
 
-    /** Applies the weights and biases of this Layer to the given input. Returns a new array. */
     @Override
     public double[] calculateWeightedOutput(double[] input) {
         double[] output = new double[nodes];
@@ -75,13 +74,8 @@ public class DenseLayer extends Layer {
         return output;
     }
 
-    /**
-     * Given the derivative array of the latest input sum,
-     * calculates and shifts the given weight and bias gradients.
-     * @return da_dC where a is the activation function of the layer before this one
-     */
     @Override
-    synchronized double[] updateGradient(double[] dz_dC, double[] x) {
+    double[] updateGradient(double[] dz_dC, double[] x) {
         double[] da_dC = new double[weightsGradient[0].length];
         for (int i = 0; i < nodes; i++) {
             for (int j = 0; j < weightsGradient[0].length; j++) {
@@ -104,10 +98,6 @@ public class DenseLayer extends Layer {
         return da_dC;
     }
 
-    /**
-     * Applies the {@code weightsGradient} and {@code biasGradient} to the weight and bias of this Layer.
-     * <br>Updates the weight and bias's gradient velocity vectors accordingly as well.
-     */
     @Override
     void applyGradient(Optimizer optimizer, double adjustedLearningRate, double momentum, double beta, double epsilon) {
         BiConsumer<Integer,Integer> updateRule;

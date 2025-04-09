@@ -135,7 +135,6 @@ public class ConvolutionalLayer extends Layer {
                     kernels[k][i][j] = initializer.get();
     }
 
-    /** Applies the weights and biases of this Layer to the given input. Returns a new array. */
     public double[] calculateWeightedOutput(double[] input) {
         assert inputWidth * inputHeight * inputLength == input.length;
 
@@ -159,11 +158,6 @@ public class ConvolutionalLayer extends Layer {
         return output;
     }
 
-    /**
-     * Given the derivative array of the latest input sum,
-     * calculates and shifts the given weight and bias gradients.
-     * @return da_dC where a is the activation function of the layer before this one
-     */
     @Override
     double[] updateGradient(double[] dz_dC, double[] x) {
         double[] da_dC = new double[inputWidth * inputHeight * inputLength];
@@ -191,10 +185,6 @@ public class ConvolutionalLayer extends Layer {
         return da_dC;
     }
 
-    /**
-     * Applies the {@code weightGradient} and {@code biasGradient} to the weight and bias of this Layer.
-     * <br>Updates the weight and bias's gradient velocity vectors accordingly as well.
-     */
     @Override
     void applyGradient(Optimizer optimizer, double adjustedLearningRate, double momentum, double beta, double epsilon) {
         IntStream.range(0, numKernels).parallel().forEach(layer -> {

@@ -31,6 +31,8 @@ public abstract class Layer {
     /** The number of times this Neural Network updated its weights and biases. */
     protected int t = 1;
 
+    /** Creates the shell of a layer with all parameters uninitialized.
+     * <br>Call {@link #initialize} with the appropriate supplier and optimizer to initialize parameters. */
     public Layer(int nodes) {
         this.nodes = nodes;
         this.bias = new double[nodes];
@@ -47,11 +49,12 @@ public abstract class Layer {
             bias[i] = initializer.get();
     }
 
-    /** Passes the input through this Layer and returns a new array of numbers. */
+    /** Applies the learned parameters of this Layer to the given input. Returns a new array. */
     public abstract double[] calculateWeightedOutput(double[] input);
 
     /**
-     * Given the derivative array of the latest input sum (dz_dC),
+     * Given the derivative array of this layer's output w.r.t the loss function (dz_dC)
+     * and the previous input of this layer,
      * calculate and shift this layer's gradients.
      * @return da_dC where a is the activation function of the layer before this one
      */

@@ -44,7 +44,7 @@ public class LSTMLayer extends Layer {
     /** The weights of the new Candidate values (second gate) layer, storing weights for the current input (x). */
     private DenseLayer oGate_x;
 
-    public LSTMLayer(int prevNodes,int nodes) {
+    public LSTMLayer(int prevNodes, int nodes) {
         super(nodes);
         nodesBefore = prevNodes;
         hPrev = new double[nodes];
@@ -61,48 +61,44 @@ public class LSTMLayer extends Layer {
 
     @Override
     public double[] calculateWeightedOutput(double[] input) {
-        double[] forget = Activation.sigmoid.calculate(
-                Linalg.add(
-                        fGate_h.calculateWeightedOutput(hPrev),
-                        fGate_x.calculateWeightedOutput(input)
-                        )
-        );
-        double[] newCandidate = Linalg.multiply(
-                Activation.sigmoid.calculate(
-                        Linalg.add(
-                                iGate_h.calculateWeightedOutput(hPrev),
-                                iGate_x.calculateWeightedOutput(input)
-                        )
-                ),
-                Activation.tanh.calculate(
-                        Linalg.add(
-                                cGate_h.calculateWeightedOutput(hPrev),
-                                cGate_x.calculateWeightedOutput(input)
+        return (
+                hPrev = Linalg.multiply(
+                        Activation.sigmoid.calculate(
+                                Linalg.add(
+                                        oGate_h.calculateWeightedOutput(hPrev),
+                                        oGate_x.calculateWeightedOutput(input)
+                                )
+                        ),
+                        Activation.tanh.calculate(
+                                (CPrev = Linalg.add(
+                                        Linalg.multiply(
+                                                CPrev,
+                                                Activation.sigmoid.calculate(
+                                                        Linalg.add(
+                                                                fGate_h.calculateWeightedOutput(hPrev),
+                                                                fGate_x.calculateWeightedOutput(input)
+                                                        )
+                                                )
+                                        ),
+                                        Linalg.multiply(
+                                                Activation.sigmoid.calculate(
+                                                        Linalg.add(
+                                                                iGate_h.calculateWeightedOutput(hPrev),
+                                                                iGate_x.calculateWeightedOutput(input)
+                                                        )
+                                                ),
+                                                Activation.tanh.calculate(
+                                                        Linalg.add(
+                                                                cGate_h.calculateWeightedOutput(hPrev),
+                                                                cGate_x.calculateWeightedOutput(input)
+                                                        )
+                                                )
+                                        )
+                                )
+                                )
                         )
                 )
         );
-        CPrev = Linalg.add(
-                Linalg.multiply(
-                    CPrev,
-                    forget
-                ),
-                newCandidate
-        );
-
-        double[] output = Linalg.multiply(
-                Activation.sigmoid.calculate(
-                        Linalg.add(
-                                oGate_h.calculateWeightedOutput(hPrev),
-                                oGate_x.calculateWeightedOutput(input)
-                        )
-                ),
-                Activation.tanh.calculate(
-                        CPrev
-                )
-        );
-
-        hPrev = output;
-        return output;
     }
 
     @Override
@@ -127,31 +123,201 @@ public class LSTMLayer extends Layer {
 
     @Override
     public boolean equals(Object obj) {
-        if(!(obj instanceof LSTMLayer o)) return false;
+        if (!(obj instanceof LSTMLayer o)) return false;
         return fGate_h.equals(o.fGate_h) && fGate_x.equals(o.fGate_x) &&
                 iGate_h.equals(o.iGate_h) && iGate_x.equals(o.iGate_x) &&
                 cGate_h.equals(o.cGate_h) && cGate_x.equals(o.cGate_x) &&
                 oGate_h.equals(o.oGate_h) && oGate_x.equals(o.oGate_x);
     }
 
+    /** Returns an array of {@code Previous Output} and {@code Previous Candidate Data} used in RNNs. */
+    public double[][] getPrevMemories() {
+        return new double[][]{hPrev, CPrev};
+    }
+
     @Override
     double[] updateGradient(double[] dz_dC, double[] x) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        throw new UnsupportedOperationException("Not supported for RNN layers.");
+    }
+
+    /**
+     * Given the derivative array of this layer's output w.r.t the loss function (dz_dC),
+     * the previous input of this layer,
+     * and the previous memories of this RNN layer,
+     * calculate and shift this layer's gradients.
+     * @return da_dC where a is the activation function of the layer before this one
+     */
+    double[] updateGradient(double[] dz_dC, double[] x, double[] hPrev, double[] CPrev) {
+        double[] forgetGateH = fGate_h.calculateWeightedOutput(hPrev),
+                forgetGateX = fGate_x.calculateWeightedOutput(x);
+        double[] forget = Linalg.add(
+                forgetGateH,
+                forgetGateX
+        );
+        double[] forgetNormalized = Activation.sigmoid.calculate(
+                forget
+        );
+
+        double[] CWeightGateH = iGate_h.calculateWeightedOutput(hPrev),
+                CWeightGateX = iGate_x.calculateWeightedOutput(x);
+        double[] newCandidateWeight = Linalg.add(
+                CWeightGateH,
+                CWeightGateX
+        );
+        double[] newCandidateWeightNormalized = Activation.sigmoid.calculate(
+                newCandidateWeight
+        );
+
+        double[] CandidateGateH = cGate_h.calculateWeightedOutput(hPrev),
+                CandidateGateX = cGate_x.calculateWeightedOutput(x);
+        double[] newCandidateConstructor = Linalg.add(
+                CandidateGateH,
+                CandidateGateX
+        );
+        double[] newCandidateConstructorNormalized = Activation.tanh.calculate(
+                newCandidateConstructor
+        );
+        double[] newCandidate = Linalg.multiply(
+                newCandidateWeightNormalized,
+                newCandidateConstructorNormalized
+        );
+
+        double[] CPrevForget = Linalg.multiply(
+                CPrev,
+                forgetNormalized
+        );
+
+        double[] CNew = Linalg.add(
+                CPrevForget,
+                newCandidate
+        );
+
+        double[] CNewTanh = Activation.tanh.calculate(
+                CNew
+        );
+
+        double[] outputWeightH = oGate_h.calculateWeightedOutput(hPrev),
+                outputWeightX = oGate_x.calculateWeightedOutput(x);
+        double[] outputWeight = Linalg.add(
+                outputWeightH,
+                outputWeightX
+        );
+        double[] outputWeightNormalized = Activation.sigmoid.calculate(
+                outputWeight
+        );
+
+        double[] oGateSigmoidDeriv = Activation.sigmoid.derivative(
+                outputWeight,
+                Linalg.multiply(
+                        dz_dC,
+                        CNewTanh
+                )
+        );
+        oGate_h.updateGradient(
+                oGateSigmoidDeriv,
+                hPrev
+        );
+        double[] outputGateDeriv = oGate_x.updateGradient(
+                oGateSigmoidDeriv,
+                x
+        );
+
+        double[] CandidateTanhDeriv = Activation.tanh.derivative(CNew, Linalg.multiply(outputWeightNormalized, dz_dC));
+        double[] cGateTanhDeriv = Activation.tanh.derivative(
+                Linalg.multiply(
+                        newCandidateWeightNormalized,
+                        CandidateTanhDeriv
+                ),
+                newCandidateConstructor
+        );
+
+        cGate_h.updateGradient(
+                cGateTanhDeriv,
+                hPrev
+        );
+        double[] cGateDeriv = cGate_x.updateGradient(
+                cGateTanhDeriv,
+                x
+        );
+
+        double[] cWeightSigmoidDeriv = Activation.sigmoid.derivative(
+                Linalg.multiply(
+                        newCandidateConstructorNormalized,
+                        CandidateTanhDeriv
+                ),
+                newCandidateWeight
+        );
+        iGate_h.updateGradient(
+                cWeightSigmoidDeriv,
+                hPrev
+        );
+        double[] iGateDeriv = iGate_x.updateGradient(
+                cWeightSigmoidDeriv,
+                x
+        );
+
+        double[] forgetGateSigmoidDeriv = Activation.sigmoid.derivative(
+                Linalg.multiply(
+                        CandidateTanhDeriv,
+                        CPrev
+                ),
+                forget
+        );
+        fGate_h.updateGradient(
+                forgetGateSigmoidDeriv,
+                hPrev
+        );
+        double[] fGateDeriv = fGate_x.updateGradient(
+                forgetGateSigmoidDeriv,
+                x
+        );
+
+        return Linalg.add(
+                Linalg.add(
+                        outputGateDeriv,
+                        cGateDeriv
+                ),
+                Linalg.add(
+                        iGateDeriv,
+                        fGateDeriv
+                )
+        );
     }
 
     @Override
     void applyGradient(Optimizer optimizer, double adjustedLearningRate, double momentum, double beta, double epsilon) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        fGate_h.applyGradient(optimizer, adjustedLearningRate, momentum, beta, epsilon);
+        fGate_x.applyGradient(optimizer, adjustedLearningRate, momentum, beta, epsilon);
+        iGate_h.applyGradient(optimizer, adjustedLearningRate, momentum, beta, epsilon);
+        iGate_x.applyGradient(optimizer, adjustedLearningRate, momentum, beta, epsilon);
+        cGate_h.applyGradient(optimizer, adjustedLearningRate, momentum, beta, epsilon);
+        cGate_x.applyGradient(optimizer, adjustedLearningRate, momentum, beta, epsilon);
+        oGate_h.applyGradient(optimizer, adjustedLearningRate, momentum, beta, epsilon);
+        oGate_x.applyGradient(optimizer, adjustedLearningRate, momentum, beta, epsilon);
     }
 
     @Override
     void clearGradient() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        fGate_h.clearGradient();
+        fGate_x.clearGradient();
+        iGate_h.clearGradient();
+        iGate_x.clearGradient();
+        cGate_h.clearGradient();
+        cGate_x.clearGradient();
+        oGate_h.clearGradient();
+        oGate_x.clearGradient();
     }
 
     @Override
     public String toString() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return "----------Forget Gate (Previous Output)----------\n" + fGate_h +
+                "\n----------Forget Gate (Current Input)----------\n" + fGate_x +
+                "\n----------Candidate Gate Weights (Previous Output)----------\n" + iGate_h +
+                "\n----------Candidate Gate Weights (Current Input)----------\n" + iGate_x +
+                "\n----------Candidate Gate Constructor (Previous Output)----------\n" + cGate_h +
+                "\n----------Candidate Gate Constructor (Current Input)----------\n" + cGate_x +
+                "\n----------Output Gate Weights (Previous Output)----------\n" + oGate_h +
+                "\n----------Output Gate Weights (Current Input)----------\n" + oGate_x;
     }
 
     @Override
