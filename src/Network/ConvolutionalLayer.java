@@ -174,7 +174,6 @@ public class ConvolutionalLayer extends Layer {
                                 assert Double.isFinite(kernelsGradient[kernel][kernelX][kernelY]);
                                 assert Double.isFinite(x[absXPos]);
 
-
                                 kernelsGradient[kernel][kernelX][kernelY] += dz_dC[index] * x[absXPos];
                                 da_dC[absXPos] += dz_dC[index] * kernels[kernel][kernelX][kernelY];
                             }

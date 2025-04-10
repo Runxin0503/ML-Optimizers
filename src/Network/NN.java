@@ -88,38 +88,6 @@ public class NN {
     }
 
     /**
-     * "Trains" the given Neural Network class using the given an EPISODE of input and expected output.
-     * <br>Typically used in RNNs where data accumulation from previous inputs is important. The training
-     * algorithm runs in sequence instead of in parallel.
-     * <br>Depending on the {@link Optimizer}, this function requires different parameters:
-     * <br>-{@link Optimizer#SGD}: Learning Rate
-     * <br>-{@link Optimizer#SGD_MOMENTUM}: Learning Rate, momentum
-     * <br>-{@link Optimizer#RMS_PROP}: Learning Rate, beta, and epsilon
-     * <br>-{@link Optimizer#ADAM}: Learning Rate, momentum, beta, and epsilon
-     * @param learningRate a hyper-parameter dictating how fast this Neural Network 'learn' from the given inputs
-     * @param momentum a hyper-parameter dictating how much of the previous SGD velocity to keep. [0~1]
-     * @param beta a hyper-parameter dictating how much of the previous RMS-Prop velocity to keep. [0~1]
-     * @param epsilon a hyper-parameter that's typically very small to avoid divide by zero errors
-     * @param n The number of episodic inputs to go through. Requires: {@code inputs.length} >= {@code n}.
-     */
-    public static void learn(NN NN, double learningRate, double momentum, double beta, double epsilon, double[][] episodeInputs, double[][] episodeOutputs, int n) {
-        assert episodeInputs.length == episodeOutputs.length;
-        for (int i = 0; i < episodeInputs.length; ++i)
-            assert episodeInputs[i].length == NN.inputNum && episodeOutputs[i].length == NN.outputNum;
-        //prevents other threads from calling learn on the same Neural Network
-        synchronized (NN) {
-            for (Layer layer : NN.layers) if (layer instanceof LSTMLayer l) l.clearPrevMemories();
-            for (int i=0;i<n;i++){
-                NN.clearGradient();
-
-                NN.backPropagate(episodeInputs[i],episodeOutputs[i]);
-
-                NN.applyGradient(NN.optimizer, learningRate / episodeInputs.length, momentum, beta, epsilon);
-            }
-        }
-    }
-
-    /**
      * Runs the optimizer in this Neural Network class with the given input and a single expected output.
      * <br>Unlike {@link #learn}, this function does backpropagation on a single output element instead of an entire output vector.
      * <br>Depending on the {@link Optimizer}, this function requires different parameters:
@@ -188,37 +156,15 @@ public class NN {
     }
 
     /**
-     * Clears all hidden states and memories of RNN layers before passing {@code input}
-     * as a new "episode" through this Network. Outputs the immediate output
-     * of the n'th element in {@code input}, similar to {@link #calculateOutput}.
-     * <br>If no RNN layers are present in this network, this function behaves
-     * identically to {@link #calculateOutput}.
-     * @param n The number of episodic inputs to go through. Requires: {@code inputs.length} >= {@code n}.
-     */
-    public double[] calculateOutputs(double[][] inputs, int n) {
-        assert inputs.length >= n;
-        for (double[] input : inputs) assert input.length == inputNum;
-
-        for (Layer layer : layers)
-            if (layer instanceof LSTMLayer l)
-                l.clearPrevMemories();
-
-        for (int i=0;i<n-1;i++){
-            calculateOutput(inputs[i]);
-        }
-        return calculateOutput(inputs[n]);
-    }
-
-    /**
      * Returns the loss of this Neural Network, or how far the expected output differs from the actual output.
      */
-    public double calculateCosts(double[] input, double[] expectedOutputs) {
+    public double calculateCost(double[] input, double[] expectedOutput) {
         double[] output = calculateOutput(input);
         double sum = 0;
 
         for (double v : output) assert Double.isFinite(v);
 
-        double[] costs = costFunction.calculate(output, expectedOutputs);
+        double[] costs = costFunction.calculate(output, expectedOutput);
 
         for (double v : costs) {
             sum += v;
@@ -235,19 +181,13 @@ public class NN {
     public void backPropagate(double[] input, double[] expectedOutput) {
         //z = immediate output of every layer (right before activation function)
         //x = immediate input of every layer (either is input or is right after activation function)
-        //memoryMatrix = memory components for RNN layers
         double[][] zs = new double[layers.length][];
         double[][] xs = new double[layers.length][];
-        double[][][] memoryMatrix = new double[layers.length][][];
         xs[0] = input;
         for (int i = 0; i < layers.length - 1; i++) {
-            //get memory cells from RNN layer
-            if (layers[i] instanceof LSTMLayer l) memoryMatrix[i] = l.getPrevMemories();
-
             zs[i] = layers[i].calculateWeightedOutput(xs[i]);
             xs[i + 1] = hiddenAF.calculate(zs[i]);
         }
-        if (layers[layers.length - 1] instanceof LSTMLayer l) memoryMatrix[layers.length - 1] = l.getPrevMemories();
         zs[layers.length - 1] = layers[layers.length - 1].calculateWeightedOutput(xs[layers.length - 1]);
         if (outputAF == Activation.softmax)
             for (int i = 0; i < zs[layers.length - 1].length; i++)
@@ -260,19 +200,11 @@ public class NN {
 
         double[] outputLayer_dz_dC = outputAF.derivative(zs[layers.length - 1], costFunction.derivative(output, expectedOutput));
         double[] nextLayer_da_dC;
-        if (layers[layers.length - 1] instanceof LSTMLayer l)
-            nextLayer_da_dC = l.updateGradient(outputLayer_dz_dC, xs[layers.length - 1],
-                    memoryMatrix[layers.length - 1][0], memoryMatrix[layers.length - 1][1]);
-        else
-            nextLayer_da_dC = layers[layers.length - 1].updateGradient(outputLayer_dz_dC, xs[layers.length - 1]);
+        nextLayer_da_dC = layers[layers.length - 1].updateGradient(outputLayer_dz_dC, xs[layers.length - 1]);
 
         for (int i = layers.length - 2; i >= 0; i--) {
             double[] dz_dC = hiddenAF.derivative(zs[i], nextLayer_da_dC);
-            if (layers[i] instanceof LSTMLayer l)
-                nextLayer_da_dC = l.updateGradient(dz_dC, xs[i],
-                        memoryMatrix[i][0], memoryMatrix[i][1]);
-            else
-                nextLayer_da_dC = layers[i].updateGradient(dz_dC, xs[i]);
+            nextLayer_da_dC = layers[i].updateGradient(dz_dC, xs[i]);
         }
     }
 
@@ -339,8 +271,6 @@ public class NN {
                 else if (layers.getFirst() instanceof ConvolutionalLayer)
                     throw new UnsupportedOperationException(
                             "Attempted to declare NN.NetworkBuilder.setInputNum after adding Convolutional layers.");
-                else if (layers.getFirst() instanceof LSTMLayer l)
-                    newLayer = new LSTMLayer(inputNum, l.nodes);
                 else throw new RuntimeException();
                 layers.set(0, newLayer);
             }
@@ -365,13 +295,6 @@ public class NN {
                                                     int strideWidth, int strideHeight, boolean padding) {
             assert (layers.isEmpty() ? inputNum : layers.getLast().nodes) == inputWidth * inputHeight * inputLength;
             layers.add(new ConvolutionalLayer(inputWidth, inputHeight, inputLength, kernelWidth, kernelHeight, numKernels, strideWidth, strideHeight, padding));
-            outputNum = layers.getLast().nodes;
-            return this;
-        }
-
-        public NetworkBuilder addLSTMLayer(int nodes) {
-            if (layers.isEmpty()) layers.add(new LSTMLayer(inputNum, nodes));
-            else layers.add(new LSTMLayer(layers.getLast().nodes, nodes));
             outputNum = layers.getLast().nodes;
             return this;
         }

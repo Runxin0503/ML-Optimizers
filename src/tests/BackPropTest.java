@@ -1,11 +1,10 @@
 package tests;
 
+import Network.NN;
 import enums.Activation;
 import enums.Cost;
-import Network.NN;
 import org.junit.jupiter.api.RepeatedTest;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BackPropTest {
@@ -24,7 +23,7 @@ public class BackPropTest {
             double[] testOutput = new double[2];
             testOutput[testInput == 1 ? 0 : 1] = 1;
 
-            NN.learn(linearNN, 0.1, 0.9,0.9, 1e-8,new double[][]{{testInput}}, new double[][]{testOutput});
+            NN.learn(linearNN, 0.1, 0.9, 0.9, 1e-8, new double[][]{{testInput}}, new double[][]{testOutput});
 
             if (evaluate(1e-2, new double[][]{{1, 0}, {0, 1}},
                     linearNN.calculateOutput(new double[]{1}),
@@ -50,7 +49,7 @@ public class BackPropTest {
             double[] testOutput = new double[2];
             testOutput[testInput[0] == 1 && testInput[1] == 1 ? 1 : 0] = 1;
 
-            NN.learn(linearNN, 0.3, 0.9,0.9, 1e-4,new double[][]{testInput}, new double[][]{testOutput});
+            NN.learn(linearNN, 0.3, 0.9, 0.9, 1e-4, new double[][]{testInput}, new double[][]{testOutput});
 
             if (evaluate(1e-2, new double[][]{{1, 0}, {1, 0}, {1, 0}, {0, 1}},
                     linearNN.calculateOutput(new double[]{0, 0}),
@@ -80,7 +79,7 @@ public class BackPropTest {
             double[] testOutput = new double[2];
             testOutput[testInput[0] == 1 || testInput[1] == 1 ? 1 : 0] = 1;
 
-            NN.learn(linearNN, 0.4, 0.8,0.9, 1e-4,new double[][]{testInput}, new double[][]{testOutput});
+            NN.learn(linearNN, 0.4, 0.8, 0.9, 1e-4, new double[][]{testInput}, new double[][]{testOutput});
 
             if (evaluate(1e-2, new double[][]{{1, 0}, {0, 1}, {0, 1}, {0, 1}},
                     linearNN.calculateOutput(new double[]{0, 0}),
@@ -97,7 +96,8 @@ public class BackPropTest {
     }
 
     /** Test Procedure: XOR. When both inputs are 1,1 or 0,0 predict 0, otherwise predict 1 */
-    @RepeatedTest(10000) //failing 2 out of 10,000, acceptable
+    @RepeatedTest(10000)
+    //failing 2 out of 10,000, acceptable
     void trainXORNeuralNetwork() {
         final NN semiComplexNN = new NN.NetworkBuilder().setInputNum(2)
                 .addDenseLayer(8).addDenseLayer(2)
@@ -110,7 +110,7 @@ public class BackPropTest {
             double[] testOutput = new double[2];
             testOutput[testInput[0] == testInput[1] ? 0 : 1] = 1;
 
-            NN.learn(semiComplexNN, 0.015, 0.96,0.9, 1e-4,new double[][]{testInput}, new double[][]{testOutput});
+            NN.learn(semiComplexNN, 0.015, 0.96, 0.9, 1e-4, new double[][]{testInput}, new double[][]{testOutput});
 
             if (evaluate(1e-2, new double[][]{{1, 0}, {1, 0}, {0, 1}, {0, 1}},
                     semiComplexNN.calculateOutput(new double[]{1, 1}),
@@ -168,8 +168,8 @@ public class BackPropTest {
 //
 //            if (i % (iterations / 100.0) == 0) {
 ////                System.out.println("NeuralNet.calculateOutput after - " + Arrays.toString(NeuralNet.calculateOutput(testCaseInput)));
-////                System.out.println("NeuralNet.calculateCost - " + NeuralNet.calculateCosts(testCaseInput, testOutput));
-////                System.out.println("NeuralNet.calculateCost on [1] - " + NeuralNet.calculateCosts(new double[]{1}, new double[]{LinearFunction.apply(1.0)}));
+////                System.out.println("NeuralNet.calculateCost - " + NeuralNet.calculateCost(testCaseInput, testOutput));
+////                System.out.println("NeuralNet.calculateCost on [1] - " + NeuralNet.calculateCost(new double[]{1}, new double[]{LinearFunction.apply(1.0)}));
 //            }
 //        }
 //
@@ -179,10 +179,10 @@ public class BackPropTest {
 //            double x = i * bound * 1.0 / testIterations;
 ////            System.out.println("LinearFunction.apply(x) " + LinearFunction.apply(x));
 ////            System.out.println("Neural Net Output " + Arrays.toString(NeuralNet.calculateOutput(new double[]{x})));
-////            System.out.println("Neural Net COST " + NeuralNet.calculateCosts(new double[]{x}, new double[]{LinearFunction.apply(x)}));
+////            System.out.println("Neural Net COST " + NeuralNet.calculateCost(new double[]{x}, new double[]{LinearFunction.apply(x)}));
 //            assertEquals(LinearFunction.apply(x), NeuralNet.calculateOutput(new double[]{x})[0], 1e-2);
-////            assertEquals(0, NeuralNet.calculateCosts(new double[]{x}, new double[]{LinearFunction.apply(x)}), 1e-2);
-//            totalCost += NeuralNet.calculateCosts(new double[]{x}, new double[]{LinearFunction.apply(x)});
+////            assertEquals(0, NeuralNet.calculateCost(new double[]{x}, new double[]{LinearFunction.apply(x)}), 1e-2);
+//            totalCost += NeuralNet.calculateCost(new double[]{x}, new double[]{LinearFunction.apply(x)});
 ////            System.out.println();
 //        }
 //        System.out.println("totalCost: " + totalCost);

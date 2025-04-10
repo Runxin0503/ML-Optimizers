@@ -1,14 +1,15 @@
 package tests;
 
+import Network.NN;
 import enums.Activation;
 import enums.Cost;
-import Network.NN;
 import org.junit.jupiter.api.RepeatedTest;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -17,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class IrisDatasetTest {
 
     private static final int Iris_Size = 150;
-    private static final HashMap<double[],Integer> featuresToCategories = new HashMap<>(Iris_Size);
+    private static final HashMap<double[], Integer> featuresToCategories = new HashMap<>(Iris_Size);
     private static final List<double[]> features;
     private static final ArrayList<String> names = new ArrayList<>();
 
@@ -32,7 +33,7 @@ public class IrisDatasetTest {
                 }
                 String label = parts[4];
                 if (!names.contains(label)) names.add(label);
-                featuresToCategories.put(features,names.indexOf(label));
+                featuresToCategories.put(features, names.indexOf(label));
             }
             assert featuresToCategories.size() == Iris_Size;
             features = featuresToCategories.keySet().stream().toList();
@@ -51,35 +52,32 @@ public class IrisDatasetTest {
         final int iterations = 200;
         final int batchSize = 15;
         final int report_interval = 50; //3 reports per iteration
-        for(int loopedIterations = 0;loopedIterations<iterations;loopedIterations++) {
+        for (int loopedIterations = 0; loopedIterations < iterations; loopedIterations++) {
             for (int trainingIndex = 0; trainingIndex < Iris_Size - batchSize; trainingIndex += batchSize) {
                 double[][] trainBatchInputs = new double[batchSize][4];
                 double[][] trainBatchOutputs = new double[batchSize][names.size()];
                 for (int i = 0; i < batchSize; i++) {
                     trainBatchInputs[i] = features.get(trainingIndex + i);
                     trainBatchOutputs[i][featuresToCategories.get(trainBatchInputs[i])] = 1;
-                }//momentum 0.9, learningRate: 0.01 -> 5%, 0.05 -> 3%
-                //momentum 0.9, learningRate: 0.01 -> ?%, 0.05 -> ?% more hidden neurons
-                //momentum 0.95, learningRate: 0.01 -> ?%, 0.05 -> 1% (relu)
-                //momentum 0.95, learningRate: 0.01 -> bad, 0.05 -> ?%, 0.1 -> ?% (sigmoid)
-                NN.learn(NeuralNet, 0.1, 0.9,0.9,1e-4, trainBatchInputs, trainBatchOutputs);
+                }
+                NN.learn(NeuralNet, 0.1, 0.9, 0.9, 1e-4, trainBatchInputs, trainBatchOutputs);
 
                 if ((trainingIndex + batchSize) % report_interval == 0) {
-//                    System.out.print("Iteration " + ((int) (((double) trainingIndex) / batchSize) + 1));
-//                    System.out.println(", " + (int) ((trainingIndex + 1.0) / Iris_Size * 10000) / 100.0 + "% finished");
-//                    reportPerformanceOnTrain(NeuralNet, trainingIndex);
-//                    reportPerformanceOnTest(NeuralNet, trainingIndex);
-//                    System.out.println("Predicted Output for " + names.get(featuresToCategories.get(features.getFirst())) + ": " + names.get(getOutput(NeuralNet.calculateOutput(features.getFirst()))));
-//                    System.out.println(Arrays.toString(NeuralNet.calculateOutput(features.getFirst())));
-//                    System.out.println("--------------------");
+                    System.out.print("Iteration " + ((int) (((double) trainingIndex) / batchSize) + 1));
+                    System.out.println(", " + (int) ((trainingIndex + 1.0) / Iris_Size * 10000) / 100.0 + "% finished");
+                    reportPerformanceOnTrain(NeuralNet, trainingIndex);
+                    reportPerformanceOnTest(NeuralNet, trainingIndex);
+                    System.out.println("Predicted Output for " + names.get(featuresToCategories.get(features.getFirst())) + ": " + names.get(getOutput(NeuralNet.calculateOutput(features.getFirst()))));
+                    System.out.println(Arrays.toString(NeuralNet.calculateOutput(features.getFirst())));
+                    System.out.println("--------------------");
                 }
             }
         }
 
-//        for(double[] feature : features)
-//            System.out.println("Predicted Output for " + names.get(featuresToCategories.get(feature)) + ":\t" + names.get(getOutput(NeuralNet.calculateOutput(feature))));
+        for(double[] feature : features)
+            System.out.println("Predicted Output for " + names.get(featuresToCategories.get(feature)) + ":\t" + names.get(getOutput(NeuralNet.calculateOutput(feature))));
 
-        reportPerformanceOnTest(NeuralNet,0);
+        reportPerformanceOnTest(NeuralNet, 0);
     }
 
     /**
@@ -94,7 +92,7 @@ public class IrisDatasetTest {
             int category = featuresToCategories.get(feature);
             double[] expectedOutput = new double[10];
             expectedOutput[category] = 1;
-            cost += NeuralNet.calculateCosts(feature, expectedOutput);
+            cost += NeuralNet.calculateCost(feature, expectedOutput);
             if (evaluateOutput(NeuralNet.calculateOutput(feature), category)) accuracy++;
         }
         System.out.println("Train Accuracy: " + accuracy * 10000 / (n * 100.0) + "%\t\tAvg Cost: " + (int) (cost * 100) / (n * 100.0));
@@ -112,7 +110,7 @@ public class IrisDatasetTest {
             int category = featuresToCategories.get(feature);
             double[] expectedOutput = new double[10];
             expectedOutput[category] = 1;
-            cost += NeuralNet.calculateCosts(feature, expectedOutput);
+            cost += NeuralNet.calculateCost(feature, expectedOutput);
             if (evaluateOutput(NeuralNet.calculateOutput(feature), category)) accuracy++;
         }
         System.out.println("Test Accuracy: " + accuracy * 10000 / (Iris_Size - n) * 0.01 + "%\t\tAvg Cost: " + (int) (cost * 100) / (Iris_Size - n) * 0.01);

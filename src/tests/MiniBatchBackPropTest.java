@@ -1,9 +1,11 @@
 package tests;
 
+import Network.NN;
 import enums.Activation;
 import enums.Cost;
-import Network.NN;
 import org.junit.jupiter.api.RepeatedTest;
+
+import java.util.Arrays;
 import java.util.Random;
 import java.util.function.Function;
 
@@ -25,7 +27,7 @@ public class MiniBatchBackPropTest {
         double[][] testCaseOutputs = new double[][]{{0, 1}, {1, 0}, {0, 1}, {1, 0}, {0, 1}, {1, 0}, {0, 1}, {1, 0}};
 
         for (int i = 0; i < iterations; i++) {
-            NN.learn(linearNN, 0.75, 0.9,0.9,1e-4, testCaseInputs, testCaseOutputs);
+            NN.learn(linearNN, 0.75, 0.9, 0.9, 1e-4, testCaseInputs, testCaseOutputs);
             if (evaluate(testCaseInputs, testCaseOutputs, linearNN, 1e-2)) break;
         }
 
@@ -45,7 +47,7 @@ public class MiniBatchBackPropTest {
         double[][] testCaseOutputs = new double[][]{{1, 0}, {1, 0}, {1, 0}, {0, 1}};
 
         for (int i = 0; i < iterations; i++) {
-            NN.learn(linearNN, 0.5, 0.9,0.9, 1e-4,testCaseInputs, testCaseOutputs);
+            NN.learn(linearNN, 0.5, 0.9, 0.9, 1e-4, testCaseInputs, testCaseOutputs);
             if (evaluate(testCaseInputs, testCaseOutputs, linearNN, 1e-2)) break;
         }
 
@@ -66,7 +68,7 @@ public class MiniBatchBackPropTest {
         double[][] testCaseOutputs = new double[][]{{1, 0}, {0, 1}, {0, 1}, {0, 1}};
 
         for (int i = 0; i < iterations; i++) {
-            NN.learn(linearNN, 0.5, 0.9,0.9, 1e-4,testCaseInputs, testCaseOutputs);
+            NN.learn(linearNN, 0.5, 0.9, 0.9, 1e-4, testCaseInputs, testCaseOutputs);
             if (evaluate(testCaseInputs, testCaseOutputs, linearNN, 1e-2)) break;
         }
 
@@ -85,8 +87,8 @@ public class MiniBatchBackPropTest {
         double[][] testCaseInputs = new double[][]{{0, 0}, {0, 1}, {1, 0}, {1, 1}};
         double[][] testCaseOutputs = new double[][]{{1, 0}, {0, 1}, {0, 1}, {1, 0}};
 
-        for (int i = 0; i < iterations; i++) {//1.25,0.95 vs 1,0.9 (10 hidden neurons)
-            NN.learn(semiComplexNN, 0.5, 0.9,0.9, 1e-4,testCaseInputs, testCaseOutputs);
+        for (int i = 0; i < iterations; i++) {
+            NN.learn(semiComplexNN, 0.5, 0.9, 0.9, 1e-4, testCaseInputs, testCaseOutputs);
             if (evaluate(testCaseInputs, testCaseOutputs, semiComplexNN, 1e-2)) break;
         }
 
@@ -130,40 +132,40 @@ public class MiniBatchBackPropTest {
                 testCaseOutputs[j] = new double[]{LinearFunction.apply(x)};
             }
 
-//            if (i % (iterations / 100.0) == 0) {
-//                System.out.println((i * 100.0 / iterations) + "%");
-//                System.out.print("testCaseInput - ");
-//                Arrays.asList(testCaseInputs).forEach(e -> System.out.print(Arrays.toString(e) + ','));
-//                System.out.print("\ntestCaseOutputs - ");
-//                Arrays.asList(testCaseOutputs).forEach(e -> System.out.print(Arrays.toString(e) + ','));
-//                System.out.print("\nNeuralNet.calculateOutput - ");
-//                Arrays.asList(testCaseInputs).forEach(e -> System.out.print(Arrays.toString(NeuralNet.calculateOutput(e)) + ','));
-//                System.out.println();
-//            }
+            if (i % (iterations / 100.0) == 0) {
+                System.out.println((i * 100.0 / iterations) + "%");
+                System.out.print("testCaseInput - ");
+                Arrays.asList(testCaseInputs).forEach(e -> System.out.print(Arrays.toString(e) + ','));
+                System.out.print("\ntestCaseOutputs - ");
+                Arrays.asList(testCaseOutputs).forEach(e -> System.out.print(Arrays.toString(e) + ','));
+                System.out.print("\nNeuralNet.calculateOutput - ");
+                Arrays.asList(testCaseInputs).forEach(e -> System.out.print(Arrays.toString(NeuralNet.calculateOutput(e)) + ','));
+                System.out.println();
+            }
 
-            NN.learn(NeuralNet, 100, 0.9,0.9999, 1e-4,testCaseInputs, testCaseOutputs);
+            NN.learn(NeuralNet, 100, 0.9, 0.9999, 1e-4, testCaseInputs, testCaseOutputs);
 
-//            if (i % (iterations / 100.0) == 0) {
-//                System.out.print("NeuralNet.calculateOutput after - ");
-//                Arrays.asList(testCaseInputs).forEach(e -> System.out.print(Arrays.toString(NeuralNet.calculateOutput(e)) + ','));
-//                System.out.print("\nNeuralNet.calculateCost - ");
-//                for (int j = 0; j < testCaseInputs.length; j++)
-//                    System.out.print(NeuralNet.calculateCosts(testCaseInputs[j], testCaseOutputs[j]) + ',');
-//                System.out.println("\nNeuralNet.calculateCost on [1] - " + NeuralNet.calculateCosts(new double[]{1}, new double[]{LinearFunction.apply(1.0)}));
-//            }
+            if (i % (iterations / 100.0) == 0) {
+                System.out.print("NeuralNet.calculateOutput after - ");
+                Arrays.asList(testCaseInputs).forEach(e -> System.out.print(Arrays.toString(NeuralNet.calculateOutput(e)) + ','));
+                System.out.print("\nNeuralNet.calculateCost - ");
+                for (int j = 0; j < testCaseInputs.length; j++)
+                    System.out.print(NeuralNet.calculateCost(testCaseInputs[j], testCaseOutputs[j]) + ',');
+                System.out.println("\nNeuralNet.calculateCost on [1] - " + NeuralNet.calculateCost(new double[]{1}, new double[]{LinearFunction.apply(1.0)}));
+            }
         }
 
         double totalCost = 0;
         final int testIterations = 10000;
         for (int i = 0; i < testIterations; i++) {
             double x = i * bound * 1.0 / testIterations;
-//            System.out.println("LinearFunction.apply(x) " + LinearFunction.apply(x));
-//            System.out.println("Neural Net Output " + Arrays.toString(NeuralNet.calculateOutput(new double[]{x})));
-//            System.out.println("Neural Net COST " + NeuralNet.calculateCosts(new double[]{x}, new double[]{LinearFunction.apply(x)}));
+            System.out.println("LinearFunction.apply(x) " + LinearFunction.apply(x));
+            System.out.println("Neural Net Output " + Arrays.toString(NeuralNet.calculateOutput(new double[]{x})));
+            System.out.println("Neural Net COST " + NeuralNet.calculateCost(new double[]{x}, new double[]{LinearFunction.apply(x)}));
             assertEquals(LinearFunction.apply(x), NeuralNet.calculateOutput(new double[]{x})[0], 1e-2);
-            assertEquals(0, NeuralNet.calculateCosts(new double[]{x}, new double[]{LinearFunction.apply(x)}), 1e-2);
-            totalCost += NeuralNet.calculateCosts(new double[]{x}, new double[]{LinearFunction.apply(x)});
-//            System.out.println();
+            assertEquals(0, NeuralNet.calculateCost(new double[]{x}, new double[]{LinearFunction.apply(x)}), 1e-2);
+            totalCost += NeuralNet.calculateCost(new double[]{x}, new double[]{LinearFunction.apply(x)});
+            System.out.println();
         }
         System.out.println("totalCost: " + totalCost);
     }

@@ -8,6 +8,7 @@ import org.junit.jupiter.api.RepeatedTest;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -54,13 +55,13 @@ public class MNISTDatasetTest {
             NN.learn(NeuralNet, 0.05, 0.88,0.97, 1e-4,trainBatchInputs, trainBatchOutputs);
 
             if ((trainingIndex + batchSize) % report_interval == 0) {
-//                System.out.print("Iteration " + ((int)(((double) trainingIndex) / batchSize) + 1));
-//                System.out.println(", "+(int)((trainingIndex + 1.0) / MNIST_Size * 10000) / 100.0+"% finished");
-//                reportPerformanceOnTest(NeuralNet,trainingIndex);
-//                reportPerformanceOnTrain(NeuralNet,trainingIndex);
-//                System.out.println("Predicted Output for " + answers[0] + ": " + getOutput(NeuralNet.calculateOutput(images[0])));
-//                System.out.println(Arrays.toString(NeuralNet.calculateOutput(images[0])));
-//                System.out.println("--------------------");
+                System.out.print("Iteration " + ((int)(((double) trainingIndex) / batchSize) + 1));
+                System.out.println(", "+(int)((trainingIndex + 1.0) / MNIST_Size * 10000) / 100.0+"% finished");
+                reportPerformanceOnTest(NeuralNet,trainingIndex);
+                reportPerformanceOnTrain(NeuralNet,trainingIndex);
+                System.out.println("Predicted Output for " + answers[0] + ": " + getOutput(NeuralNet.calculateOutput(images[0])));
+                System.out.println(Arrays.toString(NeuralNet.calculateOutput(images[0])));
+                System.out.println("--------------------");
             }
         }
         evaluatePerformanceOnTest(NeuralNet, 0,0.95);
@@ -85,15 +86,15 @@ public class MNISTDatasetTest {
             }
             NN.learn(NeuralNet, 0.05, 0.88,0.97, 1e-4,trainBatchInputs, trainBatchOutputs);
 
-//            if ((trainingIndex + batchSize) % report_interval == 0) {
-//                System.out.print("Iteration " + ((int)(((double) trainingIndex) / batchSize) + 1));
-//                System.out.println(", "+(int)((trainingIndex + 1.0) / MNIST_Size * 10000) / 100.0+"% finished");
-////                reportPerformanceOnTest(NeuralNet,trainingIndex);
-//                reportPerformanceOnTrain(NeuralNet,trainingIndex);
-//                System.out.println("Predicted Output for " + answers[0] + ": " + getOutput(NeuralNet.calculateOutput(images[0])));
-//                System.out.println(Arrays.toString(NeuralNet.calculateOutput(images[0])));
-//                System.out.println("--------------------");
-//            }
+            if ((trainingIndex + batchSize) % report_interval == 0) {
+                System.out.print("Iteration " + ((int)(((double) trainingIndex) / batchSize) + 1));
+                System.out.println(", "+(int)((trainingIndex + 1.0) / MNIST_Size * 10000) / 100.0+"% finished");
+//                reportPerformanceOnTest(NeuralNet,trainingIndex);
+                reportPerformanceOnTrain(NeuralNet,trainingIndex);
+                System.out.println("Predicted Output for " + answers[0] + ": " + getOutput(NeuralNet.calculateOutput(images[0])));
+                System.out.println(Arrays.toString(NeuralNet.calculateOutput(images[0])));
+                System.out.println("--------------------");
+            }
         }
         evaluatePerformanceOnTest(NeuralNet, 0,0.95);
     }
@@ -108,7 +109,7 @@ public class MNISTDatasetTest {
         for (int i = 0; i < n; i++) {
             double[] expectedOutput = new double[10];
             expectedOutput[answers[i]] = 1;
-            cost += NeuralNet.calculateCosts(images[i], expectedOutput);
+            cost += NeuralNet.calculateCost(images[i], expectedOutput);
             if (evaluateOutput(NeuralNet.calculateOutput(images[i]), answers[i])) accuracy++;
         }
         System.out.println("Train Accuracy: " + accuracy * 10000 / (n * 100.0) + "%\t\tAvg Cost: " + (int) (cost * 100) / (n * 100.0));
@@ -124,7 +125,7 @@ public class MNISTDatasetTest {
         for (int i = n; i < MNIST_Size; i++) {
             double[] expectedOutput = new double[10];
             expectedOutput[answers[i]] = 1;
-            cost += NeuralNet.calculateCosts(images[i], expectedOutput);
+            cost += NeuralNet.calculateCost(images[i], expectedOutput);
             if (evaluateOutput(NeuralNet.calculateOutput(images[i]), answers[i])) accuracy++;
         }
         System.out.println("Test Accuracy: " + accuracy * 10000 / (MNIST_Size - n) * 0.01 + "%\t\tAvg Cost: " + (int) (cost * 100) / (MNIST_Size - n) * 0.01);
@@ -141,7 +142,7 @@ public class MNISTDatasetTest {
         for (int i = n; i < MNIST_Size; i++) {
             double[] expectedOutput = new double[10];
             expectedOutput[answers[i]] = 1;
-            cost += NeuralNet.calculateCosts(images[i], expectedOutput);
+            cost += NeuralNet.calculateCost(images[i], expectedOutput);
             if (evaluateOutput(NeuralNet.calculateOutput(images[i]), answers[i])) accuracy++;
         }
         System.out.println("Test Accuracy: " + accuracy * 10000 / (MNIST_Size - n) * 0.01 + "%\t\tAvg Cost: " + (int) (cost * 100) / (MNIST_Size - n) * 0.01);

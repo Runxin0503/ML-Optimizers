@@ -1,32 +1,43 @@
 package Utils;
 
+import java.util.Arrays;
+import java.util.stream.IntStream;
+
 public class Linalg {
-    public static double dotProduct(double[] first,double[] second){
-        assert first.length == second.length;
-        double result = 0;
-        for (int i = 0; i < first.length; i++) result += first[i] * second[i];
-        return result;
+    public static double[] matrixMultiply(double[][] matrix, double[] input) {
+        assert matrix.length == input.length;
+//        double[] output = new double[matrix[0].length];
+//        for (int i = 0; i < matrix.length; i++)
+//            output = Linalg.add(output, Linalg.scale(input[i], matrix[i]));
+        return IntStream.range(0, input.length).parallel().mapToObj(i -> Linalg.scale(input[i], matrix[i]))
+                .collect(() -> new double[matrix[0].length], Linalg::addInPlace, Linalg::addInPlace);
     }
 
-    public static double[] multiply(double[] first,double[] second){
+    public static double dotProduct(double[] first, double[] second) {
         assert first.length == second.length;
-        double[] result = new double[first.length];
-        for (int i = 0; i < first.length; i++) result[i] = first[i] * second[i];
-        return result;
+        return IntStream.range(0, first.length).mapToDouble(i -> first[i] * second[i]).sum();
     }
 
-    public static double[] scale(double constant,double[] array){
-        double[] result = new double[array.length];
-        for (int i = 0; i < array.length; i++) result[i] = array[i] * constant;
-        return result;
+    public static double[] multiply(double[] first, double[] second) {
+        assert first.length == second.length;
+        return IntStream.range(0, first.length).mapToDouble(i -> first[i] * second[i]).toArray();
     }
 
-    public static double[] add(double[] first,double[] second){
-        assert first.length == second.length;
-        double[] result = new double[first.length];
+    public static double[] scale(double constant, double[] array) {
+        return Arrays.stream(array).parallel().map(v -> constant * v).toArray();
+    }
 
-        for(int i=0;i<first.length;i++)
-            result[i] = first[i] + second[i];
-        return result;
+    public static double[] add(double[] first, double[] second) {
+        assert first.length == second.length;
+        return IntStream.range(0, first.length).mapToDouble(i -> first[i] + second[i]).toArray();
+    }
+
+    public static void addInPlace(double[] first, double[] second) {
+        assert first.length == second.length;
+        IntStream.range(0, first.length).parallel().forEach(i -> first[i] += second[i]);
+    }
+
+    public static double sum(double[] arr) {
+        return Arrays.stream(arr).sum();
     }
 }
