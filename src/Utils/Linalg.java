@@ -27,6 +27,10 @@ public class Linalg {
         return Arrays.stream(array).parallel().map(v -> constant * v).toArray();
     }
 
+    public static void scaleInPlace(double constant, double[] array) {
+        IntStream.range(0,array.length).parallel().forEach(i -> array[i] *= constant);
+    }
+
     public static double[] add(double[] first, double[] second) {
         assert first.length == second.length;
         return IntStream.range(0, first.length).mapToDouble(i -> first[i] + second[i]).toArray();

@@ -90,7 +90,7 @@ public class MNISTDatasetTest {
                 System.out.print("Iteration " + ((int)(((double) trainingIndex) / batchSize) + 1));
                 System.out.println(", "+(int)((trainingIndex + 1.0) / MNIST_Size * 10000) / 100.0+"% finished");
 //                reportPerformanceOnTest(NeuralNet,trainingIndex);
-                reportPerformanceOnTrain(NeuralNet,trainingIndex);
+//                reportPerformanceOnTrain(NeuralNet,trainingIndex);
                 System.out.println("Predicted Output for " + answers[0] + ": " + getOutput(NeuralNet.calculateOutput(images[0])));
                 System.out.println(Arrays.toString(NeuralNet.calculateOutput(images[0])));
                 System.out.println("--------------------");

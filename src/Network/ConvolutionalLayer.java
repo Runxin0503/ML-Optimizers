@@ -162,30 +162,31 @@ public class ConvolutionalLayer extends Layer {
     double[] updateGradient(double[] dz_dC, double[] x) {
         double[] da_dC = new double[inputWidth * inputHeight * inputLength];
 
-        IntStream.range(0, numKernels).parallel().forEach(kernel -> {
-            IntStream.range(0, inputLength).parallel().forEach(layer -> {
-                for (int i = 0; i < outputWidth; i++)
-                    for (int j = 0; j < outputHeight; j++) {
-                        int index = i + j * outputWidth + kernel * outputWidth * outputHeight;
-                        assert Double.isFinite(dz_dC[index]);
-                        for (int kernelX = 0; kernelX < kernelWidth; kernelX++)
-                            for (int kernelY = 0; kernelY < kernelHeight; kernelY++) {
-                                int absXPos = inputVectorToInputMatrix[i * strideWidth + kernelX][j * strideHeight + kernelY][layer];
-                                assert Double.isFinite(kernelsGradient[kernel][kernelX][kernelY]);
-                                assert Double.isFinite(x[absXPos]);
+        IntStream.range(0, numKernels).parallel().forEach(kernel ->
+                IntStream.range(0, inputLength).parallel().forEach(layer -> {
+                    for (int i = 0; i < outputWidth; i++)
+                        for (int j = 0; j < outputHeight; j++) {
+                            int index = i + j * outputWidth + kernel * outputWidth * outputHeight;
+                            assert Double.isFinite(dz_dC[index]);
+                            for (int kernelX = 0; kernelX < kernelWidth; kernelX++)
+                                for (int kernelY = 0; kernelY < kernelHeight; kernelY++) {
+                                    int absXPos = inputVectorToInputMatrix[i * strideWidth + kernelX][j * strideHeight + kernelY][layer];
+                                    assert Double.isFinite(kernelsGradient[kernel][kernelX][kernelY]);
+                                    assert Double.isFinite(x[absXPos]);
 
-                                kernelsGradient[kernel][kernelX][kernelY] += dz_dC[index] * x[absXPos];
-                                da_dC[absXPos] += dz_dC[index] * kernels[kernel][kernelX][kernelY];
-                            }
-                    }
-            });
-        });
+                                    kernelsGradient[kernel][kernelX][kernelY] += dz_dC[index] * x[absXPos];
+                                    da_dC[absXPos] += dz_dC[index] * kernels[kernel][kernelX][kernelY];
+                                }
+                        }
+                })
+        );
 
         return da_dC;
     }
 
     @Override
-    void applyGradient(Optimizer optimizer, double adjustedLearningRate, double momentum, double beta, double epsilon) {
+    void applyGradient(Optimizer optimizer, double adjustedLearningRate, double momentum, double beta,
+                       double epsilon) {
         IntStream.range(0, numKernels).parallel().forEach(layer -> {
             BiConsumer<Integer, Integer> updateRule;
             switch (optimizer) {

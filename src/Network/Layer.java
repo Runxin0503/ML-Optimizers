@@ -1,10 +1,12 @@
 package Network;
 
+import Utils.Linalg;
 import enums.Optimizer;
 
 import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
 public abstract class Layer {
 
@@ -65,35 +67,34 @@ public abstract class Layer {
      * <br>Updates the respective gradient velocity vectors accordingly as well.
      */
     void applyGradient(Optimizer optimizer, double adjustedLearningRate, double momentum, double beta, double epsilon) {
-        Consumer<Integer> updateRule;
         switch (optimizer) {
-            case SGD -> updateRule = i -> bias[i] -= adjustedLearningRate * biasGradient[i];
-            case SGD_MOMENTUM -> updateRule = i -> {
-                biasVelocity[i] = biasVelocity[i] * momentum + (1 - momentum) * biasGradient[i];
-                bias[i] -= adjustedLearningRate * biasVelocity[i];
-            };
-            case RMS_PROP -> updateRule = i -> {
-                biasVelocitySquared[i] = beta * biasVelocitySquared[i] + (1 - beta) * (biasGradient[i] * biasGradient[i]);
-                bias[i] -= adjustedLearningRate * biasGradient[i] / Math.sqrt(biasVelocitySquared[i] + epsilon);
-            };
+            case SGD -> Linalg.addInPlace(bias, Linalg.scale(-adjustedLearningRate, biasGradient));
+            case SGD_MOMENTUM -> {
+                Linalg.scaleInPlace(momentum, biasVelocity);
+                Linalg.addInPlace(biasVelocity, Linalg.scale(1 - momentum, biasGradient));
+                Linalg.addInPlace(bias, Linalg.scale(-adjustedLearningRate, biasVelocity));
+            }
+            case RMS_PROP -> {
+                Linalg.scaleInPlace(beta, biasVelocitySquared);
+                Linalg.addInPlace(biasVelocitySquared, Linalg.scale(1 - beta, Linalg.multiply(biasGradient, biasGradient)));
+                IntStream.range(0, bias.length).parallel().forEach(i ->
+                        bias[i] -= adjustedLearningRate * biasGradient[i] / Math.sqrt(biasVelocitySquared[i] + epsilon)
+                );
+            }
             case ADAM -> {
                 double correctionMomentum = 1 - Math.pow(momentum, t);
                 double correctionBeta = 1 - Math.pow(beta, t);
-                updateRule = i -> {
-                    biasVelocity[i] = momentum * biasVelocity[i] + (1 - momentum) * biasGradient[i];
-                    biasVelocitySquared[i] = beta * biasVelocitySquared[i] + (1 - beta) * biasGradient[i] * biasGradient[i];
-                    double correctedVelocity = biasVelocity[i] / correctionMomentum;
-                    double correctedVelocitySquared = biasVelocitySquared[i] / correctionBeta;
-                    bias[i] -= adjustedLearningRate * correctedVelocity / Math.sqrt(correctedVelocitySquared + epsilon);
-                    assert Double.isFinite(bias[i]) : "\ncorrectedVelocity: " + correctedVelocity + "\ncorrectedVelocitySquared: " + correctedVelocitySquared + "\nbiasVelocity: " + biasVelocity[i] + "\nbiasVelocitySquared: " + biasVelocitySquared[i];
-                };
+                Linalg.scaleInPlace(momentum, biasVelocity);
+                Linalg.addInPlace(biasVelocity, Linalg.scale(1 - momentum, biasGradient));
+                Linalg.scaleInPlace(beta, biasVelocitySquared);
+                Linalg.addInPlace(biasVelocitySquared, Linalg.scale(1 - beta, Linalg.multiply(biasGradient, biasGradient)));
+                double[] correctedVelocity = Linalg.scale(correctionMomentum, biasVelocity),
+                        correctedVelocitySquared = Linalg.scale(correctionBeta, biasVelocitySquared);
+                IntStream.range(0, bias.length).parallel().forEach(i ->
+                        bias[i] -= adjustedLearningRate * correctedVelocity[i] / Math.sqrt(correctedVelocitySquared[i] + epsilon)
+                );
                 t++;
             }
-            case null, default -> throw new IllegalStateException("Unexpected value: " + optimizer);
-        }
-        for (int i = 0; i < nodes; i++) {
-            assert Double.isFinite(biasGradient[i]);
-            updateRule.accept(i);
         }
     }
 
