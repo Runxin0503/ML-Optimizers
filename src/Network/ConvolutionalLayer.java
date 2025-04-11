@@ -21,7 +21,7 @@ import java.util.stream.IntStream;
  * <br> -HEIGHT = ceilDiv(inputHeight - kernelHeight + 1, strideHeight)
  * <br><br>Requires: {@code inputWidth * inputHeight * inputLength} = {@code input.length} in {@link #calculateWeightedOutput(double[])}
  */
-public class ConvolutionalLayer extends Layer {
+class ConvolutionalLayer extends Layer {
 
     /**
      * An array of kernels, which each are a 2D matrix of weights
@@ -62,7 +62,7 @@ public class ConvolutionalLayer extends Layer {
     private final boolean padding;
     private final int[][][] inputVectorToInputMatrix;
 
-    public ConvolutionalLayer(int inputWidth, int inputHeight, int inputLength,
+    ConvolutionalLayer(int inputWidth, int inputHeight, int inputLength,
                               int kernelWidth, int kernelHeight, int numKernels,
                               int strideWidth, int strideHeight, boolean padding) {
         super(padding ? inputWidth * inputHeight * numKernels :
@@ -135,7 +135,8 @@ public class ConvolutionalLayer extends Layer {
                     kernels[k][i][j] = initializer.get();
     }
 
-    public double[] calculateWeightedOutput(double[] input) {
+    @Override
+    double[] calculateWeightedOutput(double[] input) {
         assert inputWidth * inputHeight * inputLength == input.length;
 
         //use kernels to scan through each layer of input matrix, create output matrix
@@ -233,7 +234,7 @@ public class ConvolutionalLayer extends Layer {
     }
 
     @Override
-    public int getNumParameters() {
+    int getNumParameters() {
         return kernels.length * kernels[0].length * kernels[0][0].length + super.getNumParameters();
     }
 

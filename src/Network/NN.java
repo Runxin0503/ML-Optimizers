@@ -7,6 +7,9 @@ import enums.Optimizer;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+/**
+ * TODO write documentation
+ */
 public class NN {
     /**
      * The number of Input Neurons in this Neural Network
@@ -262,6 +265,7 @@ public class NN {
         private Optimizer optimizer = Optimizer.ADAM;
         private final ArrayList<Layer> layers = new ArrayList<>();
 
+        //TODO add a "addLayer" method for general Layer
         public NetworkBuilder setInputNum(int inputNum) {
             this.inputNum = inputNum;
             if (!layers.isEmpty()) {

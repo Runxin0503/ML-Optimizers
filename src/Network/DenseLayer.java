@@ -9,28 +9,28 @@ import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 /** A single layer of Neurons. Contains fully connected edges to every neuron in the previous layer */
-public class DenseLayer extends Layer {
+class DenseLayer extends Layer {
 
     /**
      * A 2D matrix of weights
      * <br>Rows: The neuron {@code n} in the previous layer
      * <br>Columns: Every outgoing synapse from n to this layer's node.
-     */ //made public for testing purposes, was protected
-    public final double[][] weights;
+     */
+    private final double[][] weights;
 
     /**
      * A 2D matrix of weight velocities for SGD with momentum
      * <br>Rows: The neuron {@code n} in the previous layer
      * <br>Columns: Every outgoing synapse from n to this layer's node.
-     */ //made public for testing purposes, was protected
-    public double[][] weightsVelocity;
+     */
+    private double[][] weightsVelocity;
 
     /**
      * A 2D matrix of weight velocities for RMS-Prop
      * <br>Rows: The neuron {@code n} in the previous layer
      * <br>Columns: Every outgoing synapse from n to this layer's node.
-     */ //made public for testing purposes, was protected
-    public double[][] weightsVelocitySquared;
+     */
+    private double[][] weightsVelocitySquared;
 
     /**
      * A 2D matrix of gradients of the loss function with respect to the weights
@@ -39,7 +39,7 @@ public class DenseLayer extends Layer {
      */
     private final double[][] weightsGradient;
 
-    public DenseLayer(int nodesBefore, int nodes) {
+    DenseLayer(int nodesBefore, int nodes) {
         super(nodes);
         this.weights = new double[nodesBefore][nodes];
         this.weightsGradient = new double[nodesBefore][nodes];
@@ -60,46 +60,12 @@ public class DenseLayer extends Layer {
     }
 
     @Override
-    public double[] calculateWeightedOutput(double[] input) {
-//        double[] output = new double[nodes];
-//
-//        for (int i = 0; i < nodes; i++) {
-//            for (int j = 0; j < input.length; j++) {
-//                assert Double.isFinite(weights[i][j]);
-//                output[i] += weights[i][j] * input[j];
-//            }
-//            output[i] += bias[i];
-//            assert Double.isFinite(output[i]) : "Weighted output has reached Infinity";
-//        }
-//
-//        return output;
-
+    double[] calculateWeightedOutput(double[] input) {
         return Linalg.add(Linalg.matrixMultiply(weights, input), bias);
     }
 
     @Override
     double[] updateGradient(double[] dz_dC, double[] x) {
-//        double[] da_dC = new double[weightsGradient[0].length];
-//        for (int i = 0; i < nodes; i++) {
-//            for (int j = 0; j < weightsGradient[0].length; j++) {
-//                assert Double.isFinite(weightsGradient[i][j]);
-//                assert Double.isFinite(dz_dC[i]);
-//                assert Double.isFinite(x[j]);
-//
-//                weightsGradient[i][j] += dz_dC[i] * x[j];
-//                assert Double.isFinite(weightsGradient[i][j]) : "weightsGradient[i][j](" + weightsGradient[i][j] + ") + dz_dC[i](" + dz_dC[i] + ") * x[j](" + x[j] + ") is equal to an invalid (Infinite) value";
-//
-//                assert Double.isFinite(da_dC[j]);
-//
-//                da_dC[j] += dz_dC[i] * weights[i][j];
-//            }
-//            assert Double.isFinite(biasGradient[i]);
-//            assert Double.isFinite(dz_dC[i]);
-//
-//            biasGradient[i] += dz_dC[i];
-//        }
-//        return da_dC;
-
         Linalg.addInPlace(biasGradient, dz_dC);
         double[] result = new double[weights.length];
         for (int i = 0; i < weights.length; i++) {
@@ -154,7 +120,7 @@ public class DenseLayer extends Layer {
     }
 
     @Override
-    public int getNumParameters() {
+    int getNumParameters() {
         return weights.length * weights[0].length + super.getNumParameters();
     }
 

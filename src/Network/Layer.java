@@ -8,8 +8,10 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
+/**
+ * TODO Write for implementers to instantiate
+ */
 public abstract class Layer {
-
 
     /** The number of Neurons in this layer */
     //made public for testing purposes, was protected
@@ -35,7 +37,7 @@ public abstract class Layer {
 
     /** Creates the shell of a layer with all parameters uninitialized.
      * <br>Call {@link #initialize} with the appropriate supplier and optimizer to initialize parameters. */
-    public Layer(int nodes) {
+    protected Layer(int nodes) {
         this.nodes = nodes;
         this.bias = new double[nodes];
         this.biasGradient = new double[nodes];
@@ -52,7 +54,7 @@ public abstract class Layer {
     }
 
     /** Applies the learned parameters of this Layer to the given input. Returns a new array. */
-    public abstract double[] calculateWeightedOutput(double[] input);
+    abstract double[] calculateWeightedOutput(double[] input);
 
     /**
      * Given the derivative array of this layer's output w.r.t the loss function (dz_dC)
@@ -102,7 +104,7 @@ public abstract class Layer {
     abstract void clearGradient();
 
     /** Returns the number of learnable parameters in this layer */
-    public int getNumParameters() {
+    int getNumParameters() {
         return bias.length;
     }
 
