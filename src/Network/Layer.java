@@ -1,33 +1,33 @@
 package Network;
 
-import Utils.Linalg;
-import enums.Optimizer;
-
 import java.util.Arrays;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
 /**
- * TODO Write for implementers to instantiate
+ * Abstract base class representing a learnable layer in a neural network.
+ * <p>
+ * Each layer manages its own biases, gradients, and optimizer-related state. Subclasses are responsible for defining
+ * how the layer processes input and propagates gradients during training.
+ * </p>
+ * <p>
+ * To use a layer, instantiate a subclass (e.g., DenseLayer, ConvolutionalLayer), initialize it via {@link #initialize},
+ * then use {@link #calculateWeightedOutput} and {@link #updateGradient} during forward and backward passes respectively.
+ * </p>
  */
 public abstract class Layer {
 
     /** The number of Neurons in this layer */
-    //made public for testing purposes, was protected
-    public final int nodes;
+    protected final int nodes;
 
     /** The bias of each neuron in this layer */
-    //made public for testing purposes, was protected
-    public final double[] bias;
+    protected final double[] bias;
 
     /** The bias velocity of each neuron in this layer, used in SGD with momentum */
-    //made public for testing purposes, was protected
-    public double[] biasVelocity;
+    protected double[] biasVelocity;
 
     /** The bias velocity of each neuron in this layer, used in RMS-Prop */
-    //made public for testing purposes, was protected
-    public double[] biasVelocitySquared;
+    protected double[] biasVelocitySquared;
 
     /** The gradient of the bias with respect to the loss function */
     protected final double[] biasGradient;

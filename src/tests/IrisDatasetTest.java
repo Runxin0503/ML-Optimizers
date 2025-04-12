@@ -1,8 +1,8 @@
 package tests;
 
 import Network.NN;
-import enums.Activation;
-import enums.Cost;
+import Network.Activation;
+import Network.Cost;
 import org.junit.jupiter.api.RepeatedTest;
 
 import java.io.BufferedReader;

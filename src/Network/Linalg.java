@@ -1,4 +1,4 @@
-package Utils;
+package Network;
 
 import java.util.Arrays;
 import java.util.stream.IntStream;

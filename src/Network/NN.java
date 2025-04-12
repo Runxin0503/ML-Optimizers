@@ -1,30 +1,33 @@
 package Network;
 
-import enums.Activation;
-import enums.Cost;
-import enums.Optimizer;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
- * TODO write documentation
+ * Represents a customizable neural network composed of multiple layers, supporting dense and convolutional
+ * architectures. The NN class handles forward propagation, backpropagation, cost calculation, and gradient-based
+ * optimization using a configurable optimizer such as SGD, RMSProp, or Adam. The network supports multi-threaded
+ * training and is suitable for both supervised learning and reinforcement learning scenarios (e.g., using softmax
+ * temperature for exploration).
+ * <p>
+ * Use the {@link NetworkBuilder} inner class to construct and configure an instance of NN with your desired
+ * architecture, activation functions, and cost function.
  */
 public class NN {
     /**
      * The number of Input Neurons in this Neural Network
-     */ //made public for testing purposes, was private
-    public final int inputNum;
+     */
+    private final int inputNum;
 
     /**
      * The number of Output Neurons in this Neural Network
-     */ //made public for testing purposes, was private
-    public final int outputNum;
+     */
+    private final int outputNum;
 
     /**
      * The array of Layers in this Neural Network
-     */ //made public for testing purposes, was private
-    public final Layer[] layers;
+     */
+    private final Layer[] layers;
 
     /**
      * The value for encouraging exploration in softmax (discrete) actions in a Reinforcement Learning environment
@@ -256,6 +259,10 @@ public class NN {
                 Arrays.equals(layers, o.layers);
     }
 
+    /**
+     * A builder class for creating and configuring a neural network (NN) instance.
+     * <br>This class provides a fluent interface for setting hyperparameters, adding layers, and constructing the final NN.
+     */
     public static class NetworkBuilder {
         private int inputNum = -1, outputNum = -1;
         private Activation hiddenAF = null;
@@ -265,22 +272,27 @@ public class NN {
         private Optimizer optimizer = Optimizer.ADAM;
         private final ArrayList<Layer> layers = new ArrayList<>();
 
-        //TODO add a "addLayer" method for general Layer
+        /**
+         * Sets the number of input features for the neural network.
+         * This must be called before any layers are added.
+         *
+         * @param inputNum The number of inputs to the network.
+         * @return This builder instance for chaining.
+         * @throws UnsupportedOperationException If called after layers have already been added.
+         */
         public NetworkBuilder setInputNum(int inputNum) {
+            if (!layers.isEmpty())
+                throw new UnsupportedOperationException("Attempted to overwrite inputNum after adding layers.");
             this.inputNum = inputNum;
-            if (!layers.isEmpty()) {
-                Layer newLayer;
-                if (layers.getFirst() instanceof DenseLayer d)
-                    newLayer = new DenseLayer(inputNum, d.nodes);
-                else if (layers.getFirst() instanceof ConvolutionalLayer)
-                    throw new UnsupportedOperationException(
-                            "Attempted to declare NN.NetworkBuilder.setInputNum after adding Convolutional layers.");
-                else throw new RuntimeException();
-                layers.set(0, newLayer);
-            }
             return this;
         }
 
+        /**
+         * Adds a dense (fully connected) layer to the network with the specified number of nodes.
+         *
+         * @param nodes Number of neurons in the dense layer.
+         * @return This builder instance for chaining.
+         */
         public NetworkBuilder addDenseLayer(int nodes) {
             if (layers.isEmpty()) layers.add(new DenseLayer(inputNum, nodes));
             else layers.add(new DenseLayer(layers.getLast().nodes, nodes));
@@ -288,12 +300,39 @@ public class NN {
             return this;
         }
 
+        /**
+         * Adds a convolutional layer to the network with no padding.
+         * @param inputWidth     Width of the input volume.
+         * @param inputHeight    Height of the input volume.
+         * @param inputLength    Depth of the input volume.
+         * @param kernelWidth    Width of the convolutional kernel.
+         * @param kernelHeight   Height of the convolutional kernel.
+         * @param numKernels     Number of kernels (output depth).
+         * @param strideWidth    Stride in the width direction.
+         * @param strideHeight   Stride in the height direction.
+         * @return This builder instance for chaining.
+         * @throws AssertionError If the input size does not match the expected flattened dimension.
+         */
         public NetworkBuilder addConvolutionalLayer(int inputWidth, int inputHeight, int inputLength,
                                                     int kernelWidth, int kernelHeight, int numKernels,
                                                     int strideWidth, int strideHeight) {
             return addConvolutionalLayer(inputWidth, inputHeight, inputLength, kernelWidth, kernelHeight, numKernels, strideWidth, strideHeight, false);
         }
 
+        /**
+         * Adds a convolutional layer to the network with optional padding.
+         * @param inputWidth     Width of the input volume.
+         * @param inputHeight    Height of the input volume.
+         * @param inputLength    Depth of the input volume.
+         * @param kernelWidth    Width of the convolutional kernel.
+         * @param kernelHeight   Height of the convolutional kernel.
+         * @param numKernels     Number of kernels (output depth).
+         * @param strideWidth    Stride in the width direction.
+         * @param strideHeight   Stride in the height direction.
+         * @param padding        Whether to apply padding to keep dimensions.
+         * @return This builder instance for chaining.
+         * @throws AssertionError If the input size does not match the expected flattened dimension.
+         */
         public NetworkBuilder addConvolutionalLayer(int inputWidth, int inputHeight, int inputLength,
                                                     int kernelWidth, int kernelHeight, int numKernels,
                                                     int strideWidth, int strideHeight, boolean padding) {
@@ -303,31 +342,73 @@ public class NN {
             return this;
         }
 
+        /**
+         * Adds a custom layer to the network.
+         * <br>Useful for extending functionality with user-defined Layer subclasses.
+         * @param layer The custom Layer to add.
+         * @return This builder instance for chaining.
+         */
+        public NetworkBuilder addCustomLayer(Layer layer) {
+            layers.add(layer);
+            outputNum = layers.getLast().nodes;
+            return this;
+        }
+
+        /**
+         * Sets the activation function used in hidden layers.
+         * @param hiddenAF The activation function.
+         * @return This builder instance for chaining.
+         */
         public NetworkBuilder setHiddenAF(Activation hiddenAF) {
             this.hiddenAF = hiddenAF;
             return this;
         }
 
+        /**
+         * Sets the activation function used in the output layer.
+         * @param outputAF The output layer activation function.
+         * @return This builder instance for chaining.
+         */
         public NetworkBuilder setOutputAF(Activation outputAF) {
             this.outputAF = outputAF;
             return this;
         }
 
+        /**
+         * Sets the cost (loss) function used to train the model.
+         * @param costFunction The cost function.
+         * @return This builder instance for chaining.
+         */
         public NetworkBuilder setCostFunction(Cost costFunction) {
             this.costFunction = costFunction;
             return this;
         }
 
+        /**
+         * Sets the temperature used for output softmax or other temperature-scaled activations.
+         * @param temperature The temperature value.
+         * @return This builder instance for chaining.
+         */
         public NetworkBuilder setTemperature(double temperature) {
             this.temperature = temperature;
             return this;
         }
 
+        /**
+         * Sets the optimizer used during training.
+         * @param optimizer The optimizer (e.g., SGD, Adam).
+         * @return This builder instance for chaining.
+         */
         public NetworkBuilder setOptimizer(Optimizer optimizer) {
             this.optimizer = optimizer;
             return this;
         }
 
+        /**
+         * Builds the neural network using the configured parameters and layers.
+         * @return A fully constructed NN instance ready for training or evaluation.
+         * @throws MissingInformationException If any required fields (e.g., activation functions, cost, input/output sizes) are not set.
+         */
         public NN build() throws MissingInformationException {
             if (inputNum == -1 || outputNum == -1 || hiddenAF == null || outputAF == null || costFunction == null || layers.isEmpty() || optimizer == null)
                 throw new MissingInformationException();

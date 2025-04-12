@@ -1,7 +1,7 @@
 package tests;
 
-import enums.Activation;
-import enums.Cost;
+import Network.Activation;
+import Network.Cost;
 import Network.NN;
 import org.junit.jupiter.api.RepeatedTest;
 
