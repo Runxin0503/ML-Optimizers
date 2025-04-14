@@ -1,0 +1,11 @@
+Network\Cost.class
+Network\Linalg.class
+Network\NN.class
+Network\Optimizer.class
+Network\Activation.class
+Network\NN$NetworkBuilder.class
+Network\DenseLayer.class
+Network\Layer$1.class
+Network\Layer.class
+Network\NN$MissingInformationException.class
+Network\ConvolutionalLayer.class

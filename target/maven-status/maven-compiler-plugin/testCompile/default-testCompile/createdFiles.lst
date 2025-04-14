@@ -1,0 +1,4 @@
+MNISTDatasetTest.class
+BackPropTest.class
+MiniBatchBackPropTest.class
+IrisDatasetTest.class
