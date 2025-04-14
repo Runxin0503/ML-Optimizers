@@ -1,5 +1,3 @@
-package tests;
-
 import Network.NN;
 import Network.Activation;
 import Network.Cost;

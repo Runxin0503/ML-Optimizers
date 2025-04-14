@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/ML-Optimizers.iml" filepath="$PROJECT_DIR$/ML-Optimizers.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ml-optimizers.iml" filepath="$PROJECT_DIR$/ml-optimizers.iml" />
     </modules>
   </component>
 </project>
