@@ -1,0 +1,24 @@
+-encoding
+'UTF-8'
+-protected
+-source
+'1.8'
+-sourcepath
+'C:/Users/User/OneDrive/Desktop/Java Stuff/neural network fun/ML-Optimizers/src/main/java;C:/Users/User/OneDrive/Desktop/Java Stuff/neural network fun/ML-Optimizers/target/generated-sources/annotations'
+-author
+-bottom
+'Copyright &#169; 2025. All rights reserved.'
+-charset
+'UTF-8'
+-d
+'C:/Users/User/OneDrive/Desktop/Java Stuff/neural network fun/ML-Optimizers/target/apidocs'
+-docencoding
+'UTF-8'
+-doctitle
+'ML-Optimizers 1.0.0 API'
+-linkoffline
+'https://docs.oracle.com/javase/8/docs/api' 'C:/Users/User/OneDrive/Desktop/Java Stuff/neural network fun/ML-Optimizers/target/javadoc-bundle-options'
+-use
+-version
+-windowtitle
+'ML-Optimizers 1.0.0 API'
