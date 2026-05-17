@@ -1,14 +1,14 @@
 package Network;
 
-import org.junit.jupiter.api.Test;
-
 import java.util.Arrays;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
 
 /**
  * Edge-case unit tests for the abstract base {@link Layer}.
@@ -242,5 +242,154 @@ class LayerTest {
 
     private static void assertArrayZero(double[] array) {
         for (double v : array) assertEquals(0.0, v, DELTA);
+    }
+
+    @Test
+    void constructor_zeroNodes_allocatesEmptyArrays() {
+        StubLayer z = new StubLayer(0);
+        assertEquals(0, z.bias.length);
+        assertEquals(0, z.biasGradient.length);
+    }
+
+    @Test
+    void constructor_largeNodes_allocatesCorrectLength() {
+        StubLayer large = new StubLayer(1000);
+        assertEquals(1000, large.bias.length);
+    }
+
+    @Test
+    void initialize_supplierCalledOncePerBias() {
+        StubLayer s = new StubLayer(3);
+        int[] calls = {0};
+        Supplier<Double> sup = () -> { calls[0]++; return 0.5; };
+        s.initialize(sup, Optimizer.SGD);
+        assertEquals(3, calls[0]);
+    }
+
+    @Test
+    void initialize_withNaNSupplier_makesBiasNaN() {
+        StubLayer s = new StubLayer(2);
+        s.initialize(() -> Double.NaN, Optimizer.SGD);
+        assertTrue(Double.isNaN(s.bias[0]) && Double.isNaN(s.bias[1]));
+    }
+
+    @Test
+    void initialize_overridesExistingBias() {
+        StubLayer s = new StubLayer(1);
+        s.initialize(() -> 1.0, Optimizer.SGD);
+        s.initialize(() -> 2.0, Optimizer.SGD);
+        assertEquals(2.0, s.bias[0], DELTA);
+    }
+
+    @Test
+    void applyGradient_zeroGradient_leavesBiasUnchanged_sgd() {
+        StubLayer s = new StubLayer(1);
+        s.bias[0] = 1.0;
+        s.biasGradient[0] = 0.0;
+        s.applyGradient(Optimizer.SGD, 0.1, 0, 0, 0);
+        assertEquals(1.0, s.bias[0], DELTA);
+    }
+
+    @Test
+    void applyGradient_zeroGradient_leavesBiasUnchanged_sgdMomentum() {
+        StubLayer s = new StubLayer(1);
+        s.bias[0] = 1.0;
+        s.biasGradient[0] = 0.0;
+        s.biasVelocity = new double[]{0.0};
+        s.applyGradient(Optimizer.SGD_MOMENTUM, 0.1, 0.9, 0, 0);
+        assertEquals(1.0, s.bias[0], DELTA);
+    }
+
+    @Test
+    void applyGradient_zeroGradient_leavesBiasUnchanged_rmsProp() {
+        StubLayer s = new StubLayer(1);
+        s.bias[0] = 1.0;
+        s.biasGradient[0] = 0.0;
+        s.biasVelocitySquared = new double[]{0.0};
+        s.applyGradient(Optimizer.RMS_PROP, 0.1, 0, 0.9, 1e-8);
+        assertEquals(1.0, s.bias[0], DELTA);
+    }
+
+    @Test
+    void applyGradient_zeroGradient_leavesBiasUnchanged_adam() {
+        StubLayer s = new StubLayer(1);
+        s.bias[0] = 1.0;
+        s.biasGradient[0] = 0.0;
+        s.biasVelocity = new double[]{0.0};
+        s.biasVelocitySquared = new double[]{0.0};
+        s.applyGradient(Optimizer.ADAM, 0.1, 0.9, 0.999, 1e-8);
+        assertEquals(1.0, s.bias[0], DELTA);
+    }
+
+    @Test
+    void applyGradient_sgd_negativeLearningRate_biasGoesOpposite() {
+        StubLayer s = new StubLayer(1);
+        s.bias[0] = 1.0;
+        s.biasGradient[0] = 1.0;
+        s.applyGradient(Optimizer.SGD, -0.1, 0, 0, 0);
+        // with negative lr the subtraction becomes addition
+        assertEquals(1.1, s.bias[0], 1e-12);
+    }
+
+    @Test
+    void applyGradient_rmsProp_epsilonGuardsZeroVelocity() {
+        StubLayer s = new StubLayer(1);
+        s.bias[0] = 1.0;
+        s.biasGradient[0] = 0.0;
+        s.biasVelocitySquared = new double[]{0.0};
+        // epsilon protects the sqrt-denominator from being zero when velocitySquared is zero;
+        // with eps = 0 the divide is 0/0 = NaN, defeating the point of the test
+        s.applyGradient(Optimizer.RMS_PROP, 0.1, 0, 0.9, 1e-8);
+        assertTrue(Double.isFinite(s.bias[0]));
+    }
+
+    @Test
+    void applyGradient_adam_largeT_correctionFactorApproachesOne() {
+        StubLayer s = new StubLayer(1);
+        s.bias[0] = 1.0;
+        s.biasGradient[0] = 1.0;
+        s.biasVelocity = new double[]{0.0};
+        s.biasVelocitySquared = new double[]{0.0};
+        s.t = 1000; // simulate many steps
+        s.applyGradient(Optimizer.ADAM, 0.1, 0.9, 0.999, 1e-8);
+        assertTrue(Double.isFinite(s.bias[0]));
+    }
+
+    @Test
+    void getNumParameters_zeroNodes_isZero() {
+        assertEquals(0, new StubLayer(0).getNumParameters());
+    }
+
+    @Test
+    void equals_differingTimestepStillEqual() {
+        StubLayer a = new StubLayer(1);
+        StubLayer b = new StubLayer(1);
+        b.t = 999;
+        assertTrue(a.equals(b));
+    }
+
+    @Test
+    void equals_acrossSubclassesWithMatchingFields() {
+        class OtherStub extends Layer {
+            OtherStub(int nodes) { super(nodes); }
+            @Override double[] calculateWeightedOutput(double[] input) { return input.clone(); }
+            @Override double[] updateGradient(double[] dz_dC, double[] x) { return dz_dC.clone(); }
+            @Override void clearGradient() { Arrays.fill(biasGradient, 0); }
+            @Override public String toString() { return "OtherStub(" + nodes + ")"; }
+            @Override public Object clone() { return new OtherStub(nodes); }
+        }
+        StubLayer a = new StubLayer(2);
+        OtherStub b = new OtherStub(2);
+        assertTrue(a.equals(b));
+    }
+
+    @Test
+    void arraysDeepToString_formatsToTwoDecimalPlaces() {
+        // %.2f rounds 1.2345 -> "1.23" and 4.99 -> "4.99" (avoid 4.9999 which rounds up to "5.00")
+        double[][] arr = {{1.2345, 2.3456}, {3.0, 4.99}};
+        StringBuilder sb = new StringBuilder();
+        Layer.ArraysDeepToString(arr, sb);
+        String s = sb.toString();
+        assertTrue(s.contains("1.23") && s.contains("4.99"));
     }
 }

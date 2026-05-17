@@ -1,12 +1,13 @@
 package Network;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
 
 /**
  * Edge-case unit tests for {@link DenseLayer} (a package-private class, hence the {@code Network}
@@ -165,5 +166,99 @@ class DenseLayerTest {
     @Test
     void toString_mentionsBiases() {
         assertTrue(new DenseLayer(1, 1).toString().contains("Biases"));
+    }
+
+    @Test
+    void constructor_oneByOne_works() {
+        DenseLayer d = new DenseLayer(1, 1);
+        assertEquals(2, d.getNumParameters());
+    }
+
+    @Test
+    void constructor_zeroNodesBefore_yieldsEmptyWeightsMatrix() {
+        // weights is `new double[0][3]`; getNumParameters returns 0 * 3 weights + 3 biases.
+        // (Calling calculateWeightedOutput would still trip the Linalg.matrixMultiply
+        // empty-supplier bug exercised separately by LinalgTest.)
+        assertEquals(3, new DenseLayer(0, 3).getNumParameters());
+    }
+
+    @Test
+    void getNumParameters_variantShapes() {
+        assertEquals(5 * 5 + 5, new DenseLayer(5, 5).getNumParameters());
+        assertEquals(5 * 1 + 1, new DenseLayer(5, 1).getNumParameters());
+        assertEquals(1 * 5 + 5, new DenseLayer(1, 5).getNumParameters());
+    }
+
+    @Test
+    void calculateWeightedOutput_returnsNewArray_notAlias() {
+        DenseLayer d = new DenseLayer(2, 2);
+        double[] in = {1, 1};
+        double[] out = d.calculateWeightedOutput(in);
+        assertNotSame(in, out);
+    }
+
+    @Test
+    void calculateWeightedOutput_returnsArrayOfLengthNodes() {
+        DenseLayer d = new DenseLayer(3, 4);
+        assertEquals(4, d.calculateWeightedOutput(new double[]{1,1,1}).length);
+    }
+
+    @Test
+    void updateGradient_zeroDzDc_leavesGradientsUnchanged() {
+        DenseLayer d = new DenseLayer(2, 2);
+        d.updateGradient(new double[]{0,0}, new double[]{1,1});
+        assertArrayEquals(new double[]{0,0}, d.biasGradient, DELTA);
+    }
+
+    @Test
+    void updateGradient_nanDzDc_propagatesSilently() {
+        DenseLayer d = new DenseLayer(1, 2);
+        d.updateGradient(new double[]{Double.NaN, 1.0}, new double[]{1});
+        assertTrue(Double.isNaN(d.biasGradient[0]));
+    }
+
+    @Test
+    void updateGradient_returnsNewArray_notAlias() {
+        DenseLayer d = new DenseLayer(2, 2);
+        double[] dz = new double[]{1,2};
+        double[] ret = d.updateGradient(dz, new double[]{1,1});
+        assertNotSame(dz, ret);
+    }
+
+    @Test
+    void updateGradient_xShorterThanNodesBefore_throwsArrayIndexOutOfBounds() {
+        DenseLayer d = new DenseLayer(3, 2);
+        assertThrows(ArrayIndexOutOfBoundsException.class,
+                () -> d.updateGradient(new double[]{1,2}, new double[]{1,2}));
+    }
+
+    @Test
+    void clearGradient_calledTwice_isStillANoOp() {
+        DenseLayer d = new DenseLayer(1,1);
+        d.updateGradient(new double[]{1}, new double[]{1});
+        d.clearGradient();
+        d.clearGradient();
+        d.applyGradient(Optimizer.SGD, 0.1, 0,0,0);
+        assertArrayEquals(new double[]{0.0}, d.calculateWeightedOutput(new double[]{1.0}), DELTA);
+    }
+
+    @Test
+    void equals_sameShapeDifferentWeights_areNotEqual() {
+        DenseLayer a = new DenseLayer(1,1);
+        DenseLayer b = new DenseLayer(1,1);
+        b.updateGradient(new double[]{1.0}, new double[]{1.0});
+        b.applyGradient(Optimizer.SGD, 0.1, 0,0,0);
+        assertFalse(a.equals(b));
+    }
+
+    @Test
+    void clone_independence_modifyingCloneDoesNotAffectOriginal() {
+        DenseLayer orig = new DenseLayer(1,1);
+        DenseLayer copy = (DenseLayer) orig.clone();
+        copy.updateGradient(new double[]{1.0}, new double[]{1.0});
+        copy.applyGradient(Optimizer.SGD, 0.1, 0,0,0);
+        // original remains unchanged
+        assertArrayEquals(orig.calculateWeightedOutput(new double[]{1.0}),
+                new double[]{0.0}, DELTA);
     }
 }

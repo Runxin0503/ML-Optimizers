@@ -41,8 +41,12 @@ public enum Cost {
      */
     crossEntropy((input, expectedInput) -> {
         double[] output = new double[input.length];
-        for (int i = 0; i < input.length; i++)
-            output[i] = -(expectedInput[i] == 1 ? Math.log(input[i]) : Math.log(1 - input[i]));
+        for (int i = 0; i < input.length; i++) {
+            double y = expectedInput[i], x = input[i];
+            double termY = (y == 0) ? 0 : y * Math.log(x);
+            double term1mY = (y == 1) ? 0 : (1 - y) * Math.log(1 - x);
+            output[i] = -(termY + term1mY);
+        }
         return output;
     }, (input, expectedInput) -> {
         double[] output = new double[input.length];

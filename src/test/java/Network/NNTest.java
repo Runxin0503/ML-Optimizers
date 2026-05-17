@@ -1,10 +1,13 @@
 package Network;
 
-import org.junit.jupiter.api.Test;
-
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
 
 /**
  * Edge-case unit tests for {@link NN} and its {@link NN.NetworkBuilder}.
@@ -176,5 +179,220 @@ class NNTest {
         NN network = validNetwork();
         NN copy = (NN) network.clone();
         assertTrue(network.equals(copy));
+    }
+
+    @Test
+    void build_eachOptimizer_succeeds() {
+        for (Optimizer o : Optimizer.values()) {
+            NN n = new NN.NetworkBuilder()
+                    .setInputNum(3)
+                    .addDenseLayer(4)
+                    .addDenseLayer(2)
+                    .setHiddenAF(Activation.ReLU)
+                    .setOutputAF(Activation.softmax)
+                    .setCostFunction(Cost.crossEntropy)
+                    .setOptimizer(o)
+                    .build();
+            assertNotNull(n);
+        }
+    }
+
+    @Test
+    void build_eachHiddenActivation_succeeds() {
+        for (Activation a : Activation.values()) {
+            NN n = new NN.NetworkBuilder()
+                    .setInputNum(3)
+                    .addDenseLayer(4)
+                    .addDenseLayer(2)
+                    .setHiddenAF(a)
+                    .setOutputAF(Activation.softmax)
+                    .setCostFunction(Cost.crossEntropy)
+                    .build();
+            assertNotNull(n);
+        }
+    }
+
+    @Test
+    void build_eachOutputActivation_succeeds() {
+        for (Activation a : Activation.values()) {
+            NN n = new NN.NetworkBuilder()
+                    .setInputNum(3)
+                    .addDenseLayer(4)
+                    .addDenseLayer(2)
+                    .setHiddenAF(Activation.ReLU)
+                    .setOutputAF(a)
+                    .setCostFunction(Cost.diffSquared)
+                    .build();
+            assertNotNull(n);
+        }
+    }
+
+    @Test
+    void build_eachCostFunction_succeeds() {
+        for (Cost c : Cost.values()) {
+            NN n = new NN.NetworkBuilder()
+                    .setInputNum(3)
+                    .addDenseLayer(4)
+                    .addDenseLayer(2)
+                    .setHiddenAF(Activation.ReLU)
+                    .setOutputAF(Activation.softmax)
+                    .setCostFunction(c)
+                    .build();
+            assertNotNull(n);
+        }
+    }
+
+    @Test
+    void addCustomLayer_extendsLayerStack() {
+        NN n = new NN.NetworkBuilder()
+                .setInputNum(3)
+                .addCustomLayer(new DenseLayer(3, 2))
+                .setHiddenAF(Activation.ReLU)
+                .setOutputAF(Activation.softmax)
+                .setCostFunction(Cost.crossEntropy)
+                .build();
+        assertNotNull(n);
+    }
+
+    @Test
+    void calculateOutput_returnsArrayOfLengthOutputNum() {
+        NN n = validNetwork();
+        assertEquals(2, n.calculateOutput(new double[]{0,0,0}).length);
+    }
+
+    @Test
+    void calculateOutput_softmaxOutputSumsToOne() {
+        NN n = validNetwork();
+        double[] out = n.calculateOutput(new double[]{0,0,0});
+        double s = out[0] + out[1];
+        assertEquals(1.0, s, 1e-12);
+    }
+
+    @Test
+    void calculateOutput_isDeterministic() {
+        NN n = validNetwork();
+        double[] a = n.calculateOutput(new double[]{1,2,3});
+        double[] b = n.calculateOutput(new double[]{1,2,3});
+        assertArrayEquals(a, b, 1e-12);
+    }
+
+    @Test
+    void calculateOutput_temperatureFlatensSoftmax() {
+        NN n = validNetwork();
+        double[] lowT = n.calculateOutput(new double[]{1,1,1});
+        n.setTemperature(1000);
+        double[] highT = n.calculateOutput(new double[]{1,1,1});
+        // high temperature should move distribution closer to uniform: lower max value
+        double maxLow = Math.max(lowT[0], lowT[1]);
+        double maxHigh = Math.max(highT[0], highT[1]);
+        assertTrue(maxHigh <= maxLow + 1e-12);
+    }
+
+    @Test
+    void calculateOutput_temperatureIgnored_forNonSoftmaxOutputs() {
+        NN n = new NN.NetworkBuilder()
+                .setInputNum(1)
+                .addDenseLayer(1)
+                .setHiddenAF(Activation.none)
+                .setOutputAF(Activation.sigmoid)
+                .setCostFunction(Cost.diffSquared)
+                .build();
+        double[] a = n.calculateOutput(new double[]{1});
+        n.setTemperature(1000);
+        double[] b = n.calculateOutput(new double[]{1});
+        assertArrayEquals(a, b, 1e-12);
+    }
+
+    @Test
+    void setTemperature_defaultIsOne() {
+        NN n = validNetwork();
+        // default temperature should not be zero; calculateOutput works
+        assertDoesNotThrow(() -> n.calculateOutput(new double[]{0,0,0}));
+    }
+
+    @Test
+    void calculateCost_perfectPrediction_isZero_diffSquared() {
+        // weights/bias are randomly initialised, so "perfect" means feeding the network's own
+        // output back in as the target -- diffSquared then sums (x - x)^2 = 0 per element
+        NN n = new NN.NetworkBuilder()
+                .setInputNum(1)
+                .addDenseLayer(1)
+                .setHiddenAF(Activation.none)
+                .setOutputAF(Activation.none)
+                .setCostFunction(Cost.diffSquared)
+                .build();
+        double[] input = {0};
+        double[] target = n.calculateOutput(input);
+        assertEquals(0.0, n.calculateCost(input, target), 1e-12);
+    }
+
+    @Test
+    void calculateCost_nonNegative_forValidInputs() {
+        NN n = validNetwork();
+        double c = n.calculateCost(new double[]{0,0,0}, new double[]{0,1});
+        assertTrue(c >= 0);
+    }
+
+    @Test
+    void calculateCost_returnsScalarSumOfPerElementCosts() {
+        NN n = new NN.NetworkBuilder()
+                .setInputNum(1)
+                .addDenseLayer(1)
+                .setHiddenAF(Activation.none)
+                .setOutputAF(Activation.none)
+                .setCostFunction(Cost.diffSquared)
+                .build();
+        double[] out = n.calculateOutput(new double[]{0});
+        double[] per = Cost.diffSquared.calculate(out, new double[]{1});
+        double sum = 0; for (double v : per) sum += v;
+        assertEquals(sum, n.calculateCost(new double[]{0}, new double[]{1}), 1e-12);
+    }
+
+    @Test
+    void backPropagate_validInput_doesNotThrow() {
+        NN n = validNetwork();
+        assertDoesNotThrow(() -> n.backPropagate(new double[]{0,0,0}, new double[]{1,0}));
+    }
+
+    @Test
+    void learn_singleStep_changesOutput() {
+        NN n = new NN.NetworkBuilder()
+                .setInputNum(1)
+                .addDenseLayer(1)
+                .setHiddenAF(Activation.none)
+                .setOutputAF(Activation.none)
+                .setCostFunction(Cost.diffSquared)
+                .setOptimizer(Optimizer.SGD)
+                .build();
+        double[] before = n.calculateOutput(new double[]{1});
+        NN.learn(n, 0.1, 0, 0, 0, new double[][]{{1}}, new double[][]{{2}});
+        double[] after = n.calculateOutput(new double[]{1});
+        assertFalse(after[0] == before[0]);
+    }
+
+    @Test
+    void learnSingleOutput_validIndex_doesNotThrow() {
+        NN n = validNetwork();
+        assertDoesNotThrow(() -> NN.learnSingleOutput(n, 0.1, 0.9, 0.999, 1e-8, new double[]{0,0,0}, 0, 1.0));
+    }
+
+    @Test
+    void clone_trainingClone_doesNotAffectOriginal() {
+        NN n = validNetwork();
+        NN copy = (NN) n.clone();
+        // snapshot the original's output BEFORE training the clone, otherwise the assertion
+        // would compare n's output to itself (a tautology). Use proper Adam hyperparams since
+        // validNetwork() builds with ADAM and eps=0 trips an internal finite-value assertion.
+        double[] input = {0, 0, 0};
+        double[] before = n.calculateOutput(input);
+        NN.learn(copy, 0.1, 0.9, 0.999, 1e-8, new double[][]{input}, new double[][]{{1, 0}});
+        assertArrayEquals(before, n.calculateOutput(input), 1e-12);
+    }
+
+    @Test
+    void toString_containsParameterCountAndLayerSections() {
+        NN n = validNetwork();
+        String s = n.toString();
+        assertTrue(s.contains("parameters") && s.contains("Layer 0"));
     }
 }

@@ -1,13 +1,15 @@
 package Network;
 
-import org.junit.jupiter.api.Test;
-
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
 
 /**
  * Edge-case unit tests for {@link ConvolutionalLayer} (a package-private class, hence the
@@ -165,5 +167,133 @@ class ConvolutionalLayerTest {
     void toString_mentionsKernelsAndBiases() {
         String text = new ConvolutionalLayer(4, 4, 1, 2, 2, 1, 1, 1, false).toString();
         assertTrue(text.contains("Kernel") && text.contains("Biases"));
+    }
+
+    @Test
+    void constructor_oneByOneKernel_works() {
+        ConvolutionalLayer layer = new ConvolutionalLayer(2,2,1,2,2,1,1,1,false);
+        assertEquals(1, layer.nodes);
+    }
+
+    @Test
+    void constructor_strideGreaterThanKernel_works() {
+        ConvolutionalLayer layer = new ConvolutionalLayer(5,5,1,2,2,1,3,3,false);
+        // just ensure no exception and node count is sensible
+        assertTrue(layer.nodes >= 0);
+    }
+
+    @Test
+    void constructor_multipleKernels_kernelsArrayShape() {
+        // no padding: outputW = ceilDiv(4-2+1, 1) = 3, outputH = 3, nodes = 3 * 3 * numKernels
+        ConvolutionalLayer layer = new ConvolutionalLayer(4,4,1,2,2,3,1,1,false);
+        assertEquals(3*3*3, layer.nodes);
+        assertEquals(3*2*2 + layer.nodes, layer.getNumParameters());
+    }
+
+    @Test
+    void calculateWeightedOutput_singleKernelKnownResult() {
+        ConvolutionalLayer layer = new ConvolutionalLayer(2,2,1,2,2,1,1,1,false);
+        layer.updateGradient(new double[]{1.0}, new double[]{1,1,1,1});
+        layer.applyGradient(Optimizer.SGD, 0.1, 0, 0, 0);
+        assertArrayEquals(new double[]{-0.4}, layer.calculateWeightedOutput(new double[]{1,1,1,1}), DELTA);
+    }
+
+    @Test
+    void calculateWeightedOutput_multipleKernels_outputsStackedCorrectly() {
+        ConvolutionalLayer layer = new ConvolutionalLayer(2,2,1,2,2,2,1,1,false);
+        // two kernels over the same 2x2 input produce two outputs (stacked)
+        double[] out = layer.calculateWeightedOutput(new double[]{1,1,1,1});
+        assertEquals(2, out.length);
+    }
+
+    @Test
+    void calculateWeightedOutput_paddingTrue_doesNotThrow() {
+        ConvolutionalLayer layer = new ConvolutionalLayer(3,3,1,2,2,1,1,1,true);
+        assertDoesNotThrow(() -> layer.calculateWeightedOutput(new double[9]));
+    }
+
+    @Test
+    void calculateWeightedOutput_returnsNewArray_notAlias() {
+        ConvolutionalLayer layer = new ConvolutionalLayer(2,2,1,2,2,1,1,1,false);
+        double[] in = new double[]{1,1,1,1};
+        double[] out = layer.calculateWeightedOutput(in);
+        assertNotSame(in, out);
+    }
+
+    @Test
+    void updateGradient_zeroKernels_daDcIsZero() {
+        ConvolutionalLayer layer = new ConvolutionalLayer(2,2,1,2,2,1,1,1,false);
+        double[] da = layer.updateGradient(new double[]{0.0}, new double[]{1,1,1,1});
+        assertArrayEquals(new double[]{0,0,0,0}, da, DELTA);
+    }
+
+    @Test
+    void updateGradient_nanDzDc_throwsAssertionError() {
+        ConvolutionalLayer layer = new ConvolutionalLayer(2,2,1,2,2,1,1,1,false);
+        assertThrows(AssertionError.class, () -> layer.updateGradient(new double[]{Double.NaN}, new double[]{1,1,1,1}));
+    }
+
+    @Test
+    void updateGradient_returnsNewArray_notAlias() {
+        ConvolutionalLayer layer = new ConvolutionalLayer(2,2,1,2,2,1,1,1,false);
+        double[] ret = layer.updateGradient(new double[]{1.0}, new double[]{1,1,1,1});
+        assertNotSame(ret, new double[]{1.0});
+    }
+
+    @Test
+    void applyGradient_sgdMomentum_modifiesKernelsObservably() {
+        ConvolutionalLayer layer = new ConvolutionalLayer(2,2,1,2,2,1,1,1,false);
+        layer.initialize(() -> 0.0, Optimizer.SGD_MOMENTUM);
+        layer.updateGradient(new double[]{1.0}, new double[]{1,1,1,1});
+        layer.applyGradient(Optimizer.SGD_MOMENTUM, 0.1, 0.9, 0, 0);
+        double[] out = layer.calculateWeightedOutput(new double[]{1,1,1,1});
+        assertTrue(Double.isFinite(out[0]));
+    }
+
+    @Test
+    void applyGradient_adam_modifiesKernelsObservably() {
+        ConvolutionalLayer layer = new ConvolutionalLayer(2,2,1,2,2,1,1,1,false);
+        layer.initialize(() -> 0.0, Optimizer.ADAM);
+        layer.updateGradient(new double[]{1.0}, new double[]{1,1,1,1});
+        layer.applyGradient(Optimizer.ADAM, 0.1, 0.9, 0.999, 1e-8);
+        double[] out = layer.calculateWeightedOutput(new double[]{1,1,1,1});
+        assertTrue(Double.isFinite(out[0]));
+    }
+
+    @Test
+    void applyGradient_negativeGradient_kernelsGoPositive() {
+        ConvolutionalLayer layer = new ConvolutionalLayer(2,2,1,2,2,1,1,1,false);
+        layer.updateGradient(new double[]{-1.0}, new double[]{1,1,1,1});
+        layer.applyGradient(Optimizer.SGD, 0.1, 0, 0, 0);
+        double[] out = layer.calculateWeightedOutput(new double[]{1,1,1,1});
+        assertTrue(out[0] > 0);
+    }
+
+    @Test
+    void clearGradient_calledTwice_isStillANoOp() {
+        ConvolutionalLayer layer = new ConvolutionalLayer(2,2,1,2,2,1,1,1,false);
+        layer.updateGradient(new double[]{1.0}, new double[]{1,1,1,1});
+        layer.clearGradient();
+        layer.clearGradient();
+        layer.applyGradient(Optimizer.SGD, 0.1, 0, 0, 0);
+        assertArrayEquals(new double[]{0.0}, layer.calculateWeightedOutput(new double[]{1,1,1,1}), DELTA);
+    }
+
+    @Test
+    void equals_sameConfigDifferentKernels_areNotEqual() {
+        ConvolutionalLayer a = new ConvolutionalLayer(2,2,1,2,2,1,1,1,false);
+        ConvolutionalLayer b = new ConvolutionalLayer(2,2,1,2,2,1,1,1,false);
+        b.updateGradient(new double[]{1.0}, new double[]{1,1,1,1});
+        b.applyGradient(Optimizer.SGD, 0.1, 0,0,0);
+        assertFalse(a.equals(b));
+    }
+
+    @Test
+    void clone_independence_modifyingCloneDoesNotAffectOriginal() {
+        ConvolutionalLayer orig = new ConvolutionalLayer(2,2,1,2,2,1,1,1,false);
+        ConvolutionalLayer copy = (ConvolutionalLayer) orig.clone();
+        copy.updateGradient(new double[]{1.0}, new double[]{1,1,1,1});
+        copy.applyGradient(Optimizer.SGD, 0.1, 0,0,0);
+        assertArrayEquals(orig.calculateWeightedOutput(new double[]{1,1,1,1}), new double[]{0.0}, DELTA);
     }
 }

@@ -1,9 +1,11 @@
 package Network;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
 
 /**
  * Edge-case unit tests for {@link Cost}.
@@ -111,5 +113,130 @@ class CostTest {
         // requires -ea
         assertThrows(AssertionError.class,
                 () -> Cost.diffSquared.derivative(new double[]{Double.POSITIVE_INFINITY}, new double[]{0}));
+    }
+
+    @Test
+    void diffSquared_calculate_swapInputAndExpected_sameCost() {
+        double[] a = {3, 4};
+        double[] b = {1, 2};
+        assertArrayEquals(Cost.diffSquared.calculate(a, b), Cost.diffSquared.calculate(b, a), DELTA);
+    }
+
+    @Test
+    void diffSquared_calculate_largePredictionError_scalesAsSquare() {
+        double[] cost = Cost.diffSquared.calculate(new double[]{100}, new double[]{0});
+        assertEquals(10000.0, cost[0], DELTA);
+    }
+
+    @Test
+    void diffSquared_calculate_negativeValues_areHandledLikePositives() {
+        // squared error is invariant under joint sign flip: (x-y)^2 == ((-x) - (-y))^2
+        assertArrayEquals(Cost.diffSquared.calculate(new double[]{-3}, new double[]{-1}),
+                Cost.diffSquared.calculate(new double[]{3}, new double[]{1}), DELTA);
+    }
+
+    @Test
+    void diffSquared_calculate_returnsNewArray_notAlias() {
+        double[] out = Cost.diffSquared.calculate(new double[]{1}, new double[]{2});
+        assertNotSame(out, new double[]{1});
+    }
+
+    @Test
+    void diffSquared_derivative_singleElement_knownResult() {
+        assertArrayEquals(new double[]{6.0}, Cost.diffSquared.derivative(new double[]{4}, new double[]{1}), DELTA);
+    }
+
+    @Test
+    void diffSquared_derivative_emptyArrays_returnEmpty() {
+        assertArrayEquals(new double[0], Cost.diffSquared.derivative(new double[0], new double[0]), DELTA);
+    }
+
+    @Test
+    void diffSquared_derivative_signFollowsErrorDirection() {
+        double[] grad = Cost.diffSquared.derivative(new double[]{5}, new double[]{1});
+        assertTrue(grad[0] > 0);
+    }
+
+    @Test
+    void crossEntropy_calculate_falseLabelPerfectPrediction_isZero() {
+        assertArrayEquals(new double[]{0.0}, Cost.crossEntropy.calculate(new double[]{0.0}, new double[]{0.0}), DELTA);
+    }
+
+    @Test
+    void crossEntropy_calculate_trueLabelPerfectPrediction_isZero() {
+        assertArrayEquals(new double[]{0.0}, Cost.crossEntropy.calculate(new double[]{1.0}, new double[]{1.0}), DELTA);
+    }
+
+    @Test
+    void crossEntropy_calculate_partialProbability_matchesFormula() {
+        double[] out = Cost.crossEntropy.calculate(new double[]{0.2}, new double[]{0.5});
+        double expected = -(0.5 * Math.log(0.2) + 0.5 * Math.log(0.8));
+        assertEquals(expected, out[0], 1e-9);
+    }
+
+    @Test
+    void crossEntropy_calculate_emptyArrays_returnEmpty() {
+        assertArrayEquals(new double[0], Cost.crossEntropy.calculate(new double[0], new double[0]), DELTA);
+    }
+
+    @Test
+    void crossEntropy_calculate_returnsNewArray_notAlias() {
+        double[] out = Cost.crossEntropy.calculate(new double[]{0.3}, new double[]{0.0});
+        assertNotSame(out, new double[]{0.3});
+    }
+
+    @Test
+    void crossEntropy_derivative_falseLabelOneInput_isGuardedToZero() {
+        // input == 1 would yield -(0 - 1/0) = -Infinity; the `input[i] == 1 ? 0 : ...` guard
+        // (mirror of the `input[i] == 0 ? 0 : ...` guard on the other term) returns 0 instead.
+        assertArrayEquals(new double[]{0.0},
+                Cost.crossEntropy.derivative(new double[]{1.0}, new double[]{0.0}), DELTA);
+    }
+
+    @Test
+    void crossEntropy_derivative_singleElement_knownResult() {
+        assertArrayEquals(new double[]{2.0}, Cost.crossEntropy.derivative(new double[]{0.5}, new double[]{0}), DELTA);
+    }
+
+    @Test
+    void crossEntropy_derivative_emptyArrays_returnEmpty() {
+        assertArrayEquals(new double[0], Cost.crossEntropy.derivative(new double[0], new double[0]), DELTA);
+    }
+
+    @Test
+    void calculate_doesNotMutateOutputArgument() {
+        double[] out = {0.3};
+        double[] copy = out.clone();
+        Cost.crossEntropy.calculate(out, new double[]{1.0});
+        assertArrayEquals(copy, out, DELTA);
+    }
+
+    @Test
+    void derivative_doesNotMutateExpectedOutputArgument() {
+        double[] expected = {1.0};
+        double[] copy = expected.clone();
+        Cost.diffSquared.derivative(new double[]{1.0}, expected);
+        assertArrayEquals(copy, expected, DELTA);
+    }
+
+    @Test
+    void derivative_withNaNExpectedOutput_propagatesSilently() {
+        // no guard on expected output; NaN flows through
+        double[] res = Cost.diffSquared.derivative(new double[]{1.0}, new double[]{Double.NaN});
+        assertTrue(Double.isNaN(res[0]));
+    }
+
+    @Test
+    void calculate_inputShorterThanExpected_truncatesToInputLength() {
+        // the per-element loop runs `for i in 0..input.length`, so a shorter input simply stops
+        // the loop early and produces a result the size of `input`, no exception
+        double[] result = Cost.diffSquared.calculate(new double[]{1}, new double[]{1, 2});
+        assertEquals(1, result.length);
+    }
+
+    @Test
+    void calculate_inputLengthGreaterThanExpected_throwsArrayIndexOutOfBounds() {
+        assertThrows(ArrayIndexOutOfBoundsException.class,
+                () -> Cost.diffSquared.calculate(new double[]{1, 2}, new double[]{1}));
     }
 }

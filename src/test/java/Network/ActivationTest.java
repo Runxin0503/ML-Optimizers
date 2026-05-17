@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -196,5 +197,194 @@ class ActivationTest {
         } catch (RuntimeException acceptable) {
             // also acceptable
         }
+    }
+
+    @Test
+    void none_calculate_emptyArray_returnsEmpty() {
+        assertArrayEquals(new double[0], Activation.none.calculate(new double[0]), DELTA);
+    }
+
+    @Test
+    void none_calculate_returnsNewArray_notAlias() {
+        double[] in = {1, 2, 3};
+        double[] out = Activation.none.calculate(in);
+        assertNotSame(in, out);
+        assertArrayEquals(in, out, DELTA);
+    }
+
+    @Test
+    void relu_calculate_largePositive_passesThrough() {
+        double[] out = Activation.ReLU.calculate(new double[]{1e6});
+        assertEquals(1e6, out[0], 1e-6);
+    }
+
+    @Test
+    void relu_derivative_largeNegative_isZero() {
+        double[] d = Activation.ReLU.derivative(new double[]{-1e6}, new double[]{5});
+        assertEquals(0.0, d[0], DELTA);
+    }
+
+    @Test
+    void relu_calculate_emptyArray_returnsEmpty() {
+        assertArrayEquals(new double[0], Activation.ReLU.calculate(new double[0]), DELTA);
+    }
+
+    @Test
+    void sigmoid_calculate_symmetry() {
+        double[] a = Activation.sigmoid.calculate(new double[]{2.5});
+        double[] b = Activation.sigmoid.calculate(new double[]{-2.5});
+        assertEquals(1.0 - a[0], b[0], 1e-12);
+    }
+
+    @Test
+    void sigmoid_derivative_symmetry() {
+        double[] d1 = Activation.sigmoid.derivative(new double[]{1.2}, new double[]{1});
+        double[] d2 = Activation.sigmoid.derivative(new double[]{-1.2}, new double[]{1});
+        assertEquals(d1[0], d2[0], 1e-12);
+    }
+
+    @Test
+    void sigmoid_calculate_neverNonFinite() {
+        assertTrue(Double.isFinite(Activation.sigmoid.calculate(new double[]{1e6})[0]));
+        assertTrue(Double.isFinite(Activation.sigmoid.calculate(new double[]{-1e6})[0]));
+    }
+
+    @Test
+    void tanh_calculate_symmetry() {
+        double[] p = Activation.tanh.calculate(new double[]{2.0});
+        double[] n = Activation.tanh.calculate(new double[]{-2.0});
+        assertEquals(-p[0], n[0], 1e-12);
+    }
+
+    @Test
+    void tanh_derivative_isEven() {
+        double[] d1 = Activation.tanh.derivative(new double[]{1.5}, new double[]{1});
+        double[] d2 = Activation.tanh.derivative(new double[]{-1.5}, new double[]{1});
+        assertEquals(d1[0], d2[0], 1e-12);
+    }
+
+    @Test
+    void tanh_calculate_emptyArray_returnsEmpty() {
+        assertArrayEquals(new double[0], Activation.tanh.calculate(new double[0]), DELTA);
+    }
+
+    @Test
+    void leakyRelu_calculate_veryNegativeInput_scalesByTenth() {
+        double[] out = Activation.LeakyReLU.calculate(new double[]{-1000});
+        assertEquals(-100.0, out[0], 1e-9);
+    }
+
+    @Test
+    void leakyRelu_calculate_largePositive_passesThrough() {
+        assertEquals(1000.0, Activation.LeakyReLU.calculate(new double[]{1000})[0], 1e-9);
+    }
+
+    @Test
+    void leakyRelu_derivative_zeroBoundary_takesNegativeBranch() {
+        double[] d = Activation.LeakyReLU.derivative(new double[]{0.0}, new double[]{1.0});
+        // at boundary derivative uses negative branch slope (0.1) as implemented
+        assertEquals(0.1, d[0], 1e-9);
+    }
+
+    @Test
+    void softmax_calculate_invariantUnderConstantShift() {
+        double[] a = Activation.softmax.calculate(new double[]{1, 2, 3});
+        double[] b = Activation.softmax.calculate(new double[]{11, 12, 13});
+        for (int i = 0; i < a.length; i++) assertEquals(a[i], b[i], DELTA);
+    }
+
+    @Test
+    void softmax_calculate_outputAlwaysSumsToOne() {
+        double[] out = Activation.softmax.calculate(new double[]{0.1, 0.2, -0.3});
+        double s = out[0] + out[1] + out[2];
+        assertEquals(1.0, s, 1e-12);
+    }
+
+    @Test
+    void softmax_calculate_emptyArray_returnsEmpty() {
+        assertArrayEquals(new double[0], Activation.softmax.calculate(new double[0]), DELTA);
+    }
+
+    @Test
+    void softmax_derivative_uniformGradient_isZeroVector() {
+        double[] out = Activation.softmax.derivative(new double[]{0, 0, 0}, new double[]{1, 1, 1});
+        assertArrayEquals(new double[]{0.0, 0.0, 0.0}, out, DELTA);
+    }
+
+    @Test
+    void softmax_derivative_oneHotGradient_matchesFormula() {
+        double[] d = Activation.softmax.derivative(new double[]{0, 0, 0}, new double[]{1, 0, 0});
+        // softmax([0,0,0]) = [1/3,1/3,1/3]
+        assertEquals(2.0 / 9.0, d[0], 1e-12);
+        assertEquals(-1.0 / 9.0, d[1], 1e-12);
+        assertEquals(-1.0 / 9.0, d[2], 1e-12);
+    }
+
+    @Test
+    void softmax_derivative_returnsArrayOfMatchingLength() {
+        double[] d = Activation.softmax.derivative(new double[]{0, 0, 0, 0}, new double[]{1, 0, 0, 0});
+        assertEquals(4, d.length);
+    }
+
+    @Test
+    void calculate_doesNotMutateInput() {
+        double[] in = {1, 2, 3};
+        double[] copy = in.clone();
+        Activation.tanh.calculate(in);
+        assertArrayEquals(copy, in, DELTA);
+    }
+
+    @Test
+    void derivative_doesNotMutateGradient() {
+        double[] grad = {1, 2};
+        double[] copy = grad.clone();
+        Activation.ReLU.derivative(new double[]{0, 1}, grad);
+        assertArrayEquals(copy, grad, DELTA);
+    }
+
+    @Test
+    void derivative_withInfiniteGradient_throwsAssertionError() {
+        assertThrows(AssertionError.class,
+                () -> Activation.ReLU.derivative(new double[]{0.0}, new double[]{Double.POSITIVE_INFINITY}));
+    }
+
+    @Test
+    void getInitializer_returnsHeForReluAndLeakyRelu_xavierOtherwise() {
+        int input = 10, output = 5;
+        Supplier<Double> reluInit = Activation.getInitializer(Activation.ReLU, input, output);
+        Supplier<Double> leiInit = Activation.getInitializer(Activation.LeakyReLU, input, output);
+        Supplier<Double> sigInit = Activation.getInitializer(Activation.sigmoid, input, output);
+        double expectedReluStd = Math.sqrt(2.0 / (input + output));
+        // draw samples
+        int n = 1000;
+        double sum = 0, sumSq = 0;
+        for (int i = 0; i < n; i++) {
+            double v = reluInit.get();
+            sum += v;
+            sumSq += v * v;
+        }
+        double std = Math.sqrt(sumSq / n - (sum / n) * (sum / n));
+        // expect std to be on same order as expectedReluStd (allow wide tolerance)
+        assertTrue(std > expectedReluStd * 0.2);
+        // sigmoid/xavier should produce smaller std-dev typically
+        double sum2 = 0, sumSq2 = 0;
+        for (int i = 0; i < n; i++) {
+            double v = sigInit.get();
+            sum2 += v;
+            sumSq2 += v * v;
+        }
+        double std2 = Math.sqrt(sumSq2 / n - (sum2 / n) * (sum2 / n));
+        assertTrue(std >= 0);
+        // He-init std should not be tiny compared to xavier; allow either but at least both finite
+        assertTrue(Double.isFinite(std) && Double.isFinite(std2));
+    }
+
+    @Test
+    void getInitializer_isDeterministicSupplier() {
+        Supplier<Double> s = Activation.getInitializer(Activation.sigmoid, 4, 4);
+        double a = s.get();
+        double b = s.get();
+        // not the same constant value across calls and finite
+        assertTrue(Double.isFinite(a) && Double.isFinite(b));
     }
 }

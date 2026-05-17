@@ -118,7 +118,7 @@ class DenseLayer extends Layer {
 
     @Override
     int getNumParameters() {
-        return weights.length * weights[0].length + super.getNumParameters();
+        return weights.length * nodes + super.getNumParameters();
     }
 
     @Override
