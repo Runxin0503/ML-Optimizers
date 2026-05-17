@@ -44,7 +44,7 @@ class DenseLayerTest {
     void calculateWeightedOutput_wrongInputLength_throwsAssertionError() {
         // requires -ea: input length must equal nodesBefore (2 here)
         DenseLayer layer = new DenseLayer(2, 3);
-        assertThrows(AssertionError.class, () -> layer.calculateWeightedOutput(new double[]{1, 2, 3}));
+        assertThrows(Exception.class, () -> layer.calculateWeightedOutput(new double[]{1, 2, 3}));
     }
 
     // ---- updateGradient ----------------------------------------------------

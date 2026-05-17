@@ -18,6 +18,27 @@ import java.util.stream.IntStream;
  * <br> -WIDTH = ceilDiv(inputWidth - kernelWidth + 1, strideWidth)
  * <br> -HEIGHT = ceilDiv(inputHeight - kernelHeight + 1, strideHeight)
  * <br><br>Requires: {@code inputWidth * inputHeight * inputLength} = {@code input.length} in {@link #calculateWeightedOutput(double[])}
+ * <p>
+ * Class Invariants:
+ * <ul>
+ *   <li>{@code kernels} is shaped {@code [numKernels][kernelWidth][kernelHeight]}. In
+ *       particular {@code kernels.length == numKernels}, {@code kernels[k].length == kernelWidth},
+ *       and {@code kernels[k][x].length == kernelHeight}; do NOT use {@code kernels[0].length}
+ *       to obtain {@code kernelHeight} (it gives {@code kernelWidth}).</li>
+ *   <li>{@code kernelsGradient}, {@code kernelsVelocity} (when non-null) and
+ *       {@code kernelsVelocitySquared} (when non-null) share the same shape as {@code kernels}.</li>
+ *   <li>RMS_PROP and ADAM normalize the update by {@code sqrt(kernelsVelocitySquared + epsilon)}
+ *       -- NOT by the raw {@code kernelsGradient}. {@code kernelsVelocitySquared} is a
+ *       non-negative EMA of squared gradients, so the divisor is real and finite for any input
+ *       (including negative gradients that would otherwise yield {@code sqrt(negative) = NaN}).</li>
+ *   <li>{@link #equals} is reflexive: an instance equals itself and any structurally identical
+ *       ConvolutionalLayer. The check requires the {@code instanceof} branch AND
+ *       {@code super.equals(obj)} to both succeed before comparing kernel arrays.</li>
+ *   <li>{@link #clone} returns a structurally-equal independent copy: each
+ *       {@code kernels[i][j]} row of length {@code kernelHeight} is copied element-wise,
+ *       preserving the {@code [numKernels][kernelWidth][kernelHeight]} shape regardless of
+ *       whether {@code kernelWidth == kernelHeight}.</li>
+ * </ul>
  */
 class ConvolutionalLayer extends Layer {
 
@@ -135,7 +156,8 @@ class ConvolutionalLayer extends Layer {
 
     @Override
     double[] calculateWeightedOutput(double[] input) {
-        assert inputWidth * inputHeight * inputLength == input.length;
+        if (inputWidth * inputHeight * inputLength != input.length)
+            throw new IllegalArgumentException("input length must equal input volume");
 
         //use kernels to scan through each layer of input matrix, create output matrix
         double[] output = new double[outputWidth * outputHeight * numKernels];
@@ -166,12 +188,15 @@ class ConvolutionalLayer extends Layer {
                     for (int i = 0; i < outputWidth; i++)
                         for (int j = 0; j < outputHeight; j++) {
                             int index = i + j * outputWidth + kernel * outputWidth * outputHeight;
-                            assert Double.isFinite(dz_dC[index]);
+                            if (!Double.isFinite(dz_dC[index]))
+                                throw new IllegalStateException("dz_dC contains non-finite values");
                             for (int kernelX = 0; kernelX < kernelWidth; kernelX++)
                                 for (int kernelY = 0; kernelY < kernelHeight; kernelY++) {
                                     int absXPos = inputVectorToInputMatrix[i * strideWidth + kernelX][j * strideHeight + kernelY][layer];
-                                    assert Double.isFinite(kernelsGradient[kernel][kernelX][kernelY]);
-                                    assert Double.isFinite(x[absXPos]);
+                                    if (!Double.isFinite(kernelsGradient[kernel][kernelX][kernelY]))
+                                        throw new IllegalStateException("kernelsGradient contains non-finite values");
+                                    if (!Double.isFinite(x[absXPos]))
+                                        throw new IllegalArgumentException("input contains non-finite values");
 
                                     kernelsGradient[kernel][kernelX][kernelY] += dz_dC[index] * x[absXPos];
                                     da_dC[absXPos] += dz_dC[index] * kernels[kernel][kernelX][kernelY];
@@ -208,7 +233,8 @@ class ConvolutionalLayer extends Layer {
                         double correctedVelocity = kernelsVelocity[layer][x][y] / correctionMomentum;
                         double correctedVelocitySquared = kernelsVelocitySquared[layer][x][y] / correctionBeta;
                         kernels[layer][x][y] -= adjustedLearningRate * correctedVelocity / Math.sqrt(correctedVelocitySquared + epsilon);
-                        assert Double.isFinite(kernels[layer][x][y]) : "\ncorrectedVelocity: " + correctedVelocity + "\ncorrectedVelocitySquared: " + correctedVelocitySquared + "\nweightsVelocity: " + kernelsVelocity[x][y][layer] + "\nweightsVelocitySquared: " + kernelsVelocitySquared[x][y][layer];
+                        if (!Double.isFinite(kernels[layer][x][y]))
+                            throw new IllegalStateException("\ncorrectedVelocity: " + correctedVelocity + "\ncorrectedVelocitySquared: " + correctedVelocitySquared + "\nweightsVelocity: " + kernelsVelocity[x][y][layer] + "\nweightsVelocitySquared: " + kernelsVelocitySquared[x][y][layer]);
                     };
                 }
                 case null, default -> throw new IllegalStateException("Unexpected value: " + optimizer);
@@ -216,7 +242,8 @@ class ConvolutionalLayer extends Layer {
 
             for (int x = 0; x < kernelWidth; x++)
                 for (int y = 0; y < kernelHeight; y++) {
-                    assert Double.isFinite(kernelsGradient[layer][x][y]);
+                    if (!Double.isFinite(kernelsGradient[layer][x][y]))
+                        throw new IllegalStateException("kernelsGradient contains non-finite values");
                     updateRule.accept(x, y);
                 }
         });
@@ -264,6 +291,17 @@ class ConvolutionalLayer extends Layer {
     }
 
     @Override
+    public int hashCode() {
+        return Objects.hash(nodes, inputWidth, inputHeight, inputLength, kernelWidth, kernelHeight, numKernels,
+                outputWidth, outputHeight, strideWidth, strideHeight, padding,
+                Arrays.hashCode(bias), Arrays.hashCode(biasVelocity), Arrays.hashCode(biasVelocitySquared), Arrays.hashCode(biasGradient),
+                Arrays.deepHashCode(kernels), Arrays.deepHashCode(kernelsVelocity), Arrays.deepHashCode(kernelsVelocitySquared),
+                Arrays.deepHashCode(kernelsGradient), Arrays.deepHashCode(inputVectorToInputMatrix));
+    }
+
+    //noinspection CloneDoesNotCallSuperClone,CloneDoesNotThrowCloneNotSupportedException
+    @Override
+    @SuppressWarnings("MethodDoesNotCallSuperMethod")
     public Object clone() {
         ConvolutionalLayer newLayer = new ConvolutionalLayer(inputWidth, inputHeight, inputLength, kernelWidth, kernelHeight, numKernels, strideWidth, strideHeight, padding);
         System.arraycopy(bias, 0, newLayer.bias, 0, nodes);

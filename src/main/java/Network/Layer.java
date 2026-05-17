@@ -14,6 +14,23 @@ import java.util.stream.IntStream;
  * To use a layer, instantiate a subclass (e.g., DenseLayer, ConvolutionalLayer), initialize it via {@link #initialize},
  * then use {@link #calculateWeightedOutput} and {@link #updateGradient} during forward and backward passes respectively.
  * </p>
+ * <p>
+ * Class Invariants:
+ * <ul>
+ *   <li>{@code bias.length == nodes} and {@code biasGradient.length == nodes}.</li>
+ *   <li>{@code biasVelocity} is allocated (length {@code nodes}) only after {@link #initialize}
+ *       has been called with {@link Optimizer#SGD_MOMENTUM} or {@link Optimizer#ADAM};
+ *       {@code null} for {@link Optimizer#SGD} and {@link Optimizer#RMS_PROP}.</li>
+ *   <li>{@code biasVelocitySquared} is allocated only after {@link #initialize} with
+ *       {@link Optimizer#RMS_PROP} or {@link Optimizer#ADAM}; {@code null} otherwise.</li>
+ *   <li>The per-layer timestep {@code t} starts at {@code 1} and is incremented only by ADAM's
+ *       {@link #applyGradient}; the ADAM bias-corrected moments are obtained by *dividing*
+ *       (not multiplying) raw moments by {@code (1 - momentum^t)} and {@code (1 - beta^t)},
+ *       matching DenseLayer's weight-side correction.</li>
+ *   <li>{@link #equals} compares {@code nodes}, {@code bias}, {@code biasVelocity},
+ *       {@code biasVelocitySquared}, and {@code biasGradient}; it is reflexive (a layer equals
+ *       itself) and ignores {@code t}.</li>
+ * </ul>
  */
 public abstract class Layer {
 
@@ -67,6 +84,16 @@ public abstract class Layer {
     /**
      * Applies this layer's gradients to the parameters of this Layer.
      * <br>Updates the respective gradient velocity vectors accordingly as well.
+     * <p>
+     * Precondition: {@code optimizer} must match the value passed to {@link #initialize}, so the
+     * velocity arrays this optimizer needs are already allocated. SGD requires no velocity;
+     * SGD_MOMENTUM requires {@code biasVelocity}; RMS_PROP requires {@code biasVelocitySquared};
+     * ADAM requires both. Passing a mismatched optimizer either dereferences a {@code null}
+     * velocity array or silently no-ops the velocity update.
+     * <p>
+     * Precondition (RMS_PROP / ADAM): {@code epsilon > 0}, otherwise zero accumulated squared
+     * velocity makes the {@code sqrt(velocitySquared + epsilon)} denominator zero and produces
+     * NaN.
      */
     void applyGradient(Optimizer optimizer, double adjustedLearningRate, double momentum, double beta, double epsilon) {
         switch (optimizer) {

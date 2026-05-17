@@ -110,7 +110,7 @@ class NNTest {
     @Test
     void addConvolutionalLayer_inputDimsMismatch_throwsAssertionError() {
         // requires -ea: inputNum (10) must equal inputWidth * inputHeight * inputLength (9)
-        assertThrows(AssertionError.class, () -> new NN.NetworkBuilder()
+        assertThrows(Exception.class, () -> new NN.NetworkBuilder()
                 .setInputNum(10)
                 .addConvolutionalLayer(3, 3, 1, 2, 2, 1, 1, 1));
     }
@@ -121,7 +121,7 @@ class NNTest {
     void calculateOutput_wrongInputLength_throwsAssertionError() {
         // requires -ea: input length must equal inputNum (3)
         NN network = validNetwork();
-        assertThrows(AssertionError.class, () -> network.calculateOutput(new double[2]));
+        assertThrows(Exception.class, () -> network.calculateOutput(new double[2]));
     }
 
     @Test
@@ -130,7 +130,7 @@ class NNTest {
         // softmax activation's own finite-value guard rejects
         NN network = validNetwork();
         network.setTemperature(0);
-        assertThrows(AssertionError.class, () -> network.calculateOutput(new double[3]));
+        assertThrows(Exception.class, () -> network.calculateOutput(new double[3]));
     }
 
     // ---- learn / learnSingleOutput -----------------------------------------
@@ -139,7 +139,7 @@ class NNTest {
     void learn_emptyBatch_throwsAssertionError() {
         // requires -ea: learningRate / batchSize is 0.1 / 0 = Infinity, which applyGradient rejects
         NN network = validNetwork();
-        assertThrows(AssertionError.class,
+        assertThrows(Exception.class,
                 () -> NN.learn(network, 0.1, 0.9, 0.999, 1e-8, new double[0][], new double[0][]));
     }
 
@@ -147,7 +147,7 @@ class NNTest {
     void learn_mismatchedBatchLengths_throwsAssertionError() {
         // requires -ea: the input batch and output batch must have the same number of samples
         NN network = validNetwork();
-        assertThrows(AssertionError.class,
+        assertThrows(Exception.class,
                 () -> NN.learn(network, 0.1, 0.9, 0.999, 1e-8, new double[2][], new double[1][]));
     }
 
@@ -155,7 +155,7 @@ class NNTest {
     void learnSingleOutput_outputIndexOutOfRange_throwsAssertionError() {
         // requires -ea: outputIndex must satisfy 0 <= outputIndex < outputNum (2)
         NN network = validNetwork();
-        assertThrows(AssertionError.class,
+        assertThrows(Exception.class,
                 () -> NN.learnSingleOutput(network, 0.1, 0.9, 0.999, 1e-8, new double[3], 99, 1.0));
     }
 

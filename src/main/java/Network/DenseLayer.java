@@ -5,7 +5,28 @@ import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
-/** A single layer of Neurons. Contains fully connected edges to every neuron in the previous layer */
+/**
+ * A single layer of Neurons. Contains fully connected edges to every neuron in the previous layer.
+ * <p>
+ * Class Invariants:
+ * <ul>
+ *   <li>{@code weights} is shaped {@code [nodesBefore][nodes]} -- rows index the previous
+ *       layer's neurons, columns index this layer's neurons. In particular,
+ *       {@code weights.length == nodesBefore} and {@code weights[i].length == nodes}; do NOT
+ *       use {@code weights[0].length} to obtain {@code nodesBefore}.</li>
+ *   <li>{@code weightsGradient}, {@code weightsVelocity} (when non-null) and
+ *       {@code weightsVelocitySquared} (when non-null) all share the same
+ *       {@code [nodesBefore][nodes]} shape as {@code weights}.</li>
+ *   <li>{@link #getNumParameters()} returns {@code nodesBefore * nodes + nodes} and is safe
+ *       to call even when {@code nodesBefore == 0} (does not dereference {@code weights[0]}).</li>
+ *   <li>{@link #equals} is reflexive: an instance equals itself and any structurally identical
+ *       DenseLayer. The check requires the {@code instanceof DenseLayer} branch AND
+ *       {@code super.equals(obj)} to both succeed before comparing weight arrays.</li>
+ *   <li>{@link #clone} returns a structurally-equal independent copy: every {@code weights[i]}
+ *       row of length {@code nodes} is copied element-wise, preserving the
+ *       {@code [nodesBefore][nodes]} shape regardless of whether {@code nodesBefore == nodes}.</li>
+ * </ul>
+ */
 class DenseLayer extends Layer {
 
     /**
@@ -51,9 +72,9 @@ class DenseLayer extends Layer {
         if (optimizer == Optimizer.RMS_PROP || optimizer == Optimizer.ADAM)
             this.weightsVelocitySquared = new double[weights.length][nodes];
 
-        for (int i = 0; i < weights.length; i++)
+        for (double[] weightRow : weights)
             for (int j = 0; j < nodes; j++)
-                weights[i][j] = initializer.get();
+                weightRow[j] = initializer.get();
     }
 
     @Override
@@ -95,7 +116,8 @@ class DenseLayer extends Layer {
                     double correctedVelocity = weightsVelocity[i][j] / correctionMomentum;
                     double correctedVelocitySquared = weightsVelocitySquared[i][j] / correctionBeta;
                     weights[i][j] -= adjustedLearningRate * correctedVelocity / Math.sqrt(correctedVelocitySquared + epsilon);
-                    assert Double.isFinite(weights[i][j]) : "\ncorrectedVelocity: " + correctedVelocity + "\ncorrectedVelocitySquared: " + correctedVelocitySquared + "\nweightsVelocity: " + weightsVelocity[i][j] + "\nweightsVelocitySquared: " + weightsVelocitySquared[i][j];
+                    if (!Double.isFinite(weights[i][j]))
+                        throw new IllegalStateException("\ncorrectedVelocity: " + correctedVelocity + "\ncorrectedVelocitySquared: " + correctedVelocitySquared + "\nweightsVelocity: " + weightsVelocity[i][j] + "\nweightsVelocitySquared: " + weightsVelocitySquared[i][j]);
                 };
             }
             case null, default -> throw new IllegalStateException("Unexpected value: " + optimizer);
@@ -103,7 +125,8 @@ class DenseLayer extends Layer {
 
         for (int i = 0; i < weights.length; i++) {
             for (int j = 0; j < nodes; j++) {
-                assert Double.isFinite(weightsGradient[i][j]);
+                if (!Double.isFinite(weightsGradient[i][j]))
+                    throw new IllegalStateException("weightsGradient contains non-finite values");
                 updateRule.accept(i, j);
             }
         }
@@ -111,6 +134,7 @@ class DenseLayer extends Layer {
         super.applyGradient(optimizer, adjustedLearningRate, momentum, beta, epsilon);
     }
 
+    @Override
     void clearGradient() {
         for (int i = 0; i < weightsGradient.length; i++) weightsGradient[i] = new double[weights[0].length];
         Arrays.fill(biasGradient, 0);
@@ -140,6 +164,15 @@ class DenseLayer extends Layer {
     }
 
     @Override
+    public int hashCode() {
+        return Objects.hash(nodes,
+                Arrays.hashCode(bias), Arrays.hashCode(biasVelocity), Arrays.hashCode(biasVelocitySquared), Arrays.hashCode(biasGradient),
+                Arrays.deepHashCode(weights), Arrays.deepHashCode(weightsVelocity), Arrays.deepHashCode(weightsVelocitySquared), Arrays.deepHashCode(weightsGradient));
+    }
+
+    //noinspection CloneDoesNotCallSuperClone,CloneDoesNotThrowCloneNotSupportedException
+    @Override
+    @SuppressWarnings("MethodDoesNotCallSuperMethod")
     public Object clone() {
         int nodesBefore = weights.length;
         DenseLayer newLayer = new DenseLayer(nodesBefore, nodes);

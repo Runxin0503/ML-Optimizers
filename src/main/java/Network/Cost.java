@@ -37,7 +37,17 @@ public enum Cost {
     /**
      * Cross-Entropy Loss: f(x, y) = - [y * log(x) + (1 - y) * log(1 - x)]
      * <p>
-     * Where x is the predicted probability, and y is the true label (0 or 1).
+     * Where x is the predicted probability, and y is the true label (typically 0 or 1, but
+     * fractional values in [0, 1] are supported via the full mixed formula).
+     * <p>
+     * Precondition: every {@code input[i]} (predicted probability) must lie in {@code [0, 1]}
+     * and every {@code expectedInput[i]} (label) must lie in {@code [0, 1]}. The forward pass
+     * applies the {@code 0 * log(0) = 0} convention at the boundaries, but combinations that
+     * still produce {@code log(0)} of a non-zero coefficient -- {@code x = 0} with {@code y > 0},
+     * or {@code x = 1} with {@code y < 1} -- yield {@code +Infinity} and trip the internal
+     * finite-value assertion. The derivative mirrors this with {@code x == 0} and {@code x == 1}
+     * guards that return a per-element gradient of {@code 0} at those singular points instead
+     * of the mathematically-undefined {@code 1/0}.
      */
     crossEntropy((input, expectedInput) -> {
         double[] output = new double[input.length];
@@ -73,9 +83,13 @@ public enum Cost {
      * @throws AssertionError if input or output contains non-finite values
      */
     double[] calculate(double[] output, double[] expectedOutput) {
-        for (double v : output) assert Double.isFinite(v) : "Attempted to input invalid values into Loss Function";
+        for (double v : output)
+            if (!Double.isFinite(v))
+                throw new IllegalArgumentException("Attempted to input invalid values into Loss Function");
         double[] costs = this.function.apply(output, expectedOutput);
-        for (double v : costs) assert Double.isFinite(v) : "Loss Function returning invalid values";
+        for (double v : costs)
+            if (!Double.isFinite(v))
+                throw new IllegalStateException("Loss Function returning invalid values");
         return costs;
     }
 
@@ -90,9 +104,12 @@ public enum Cost {
      */
     double[] derivative(double[] output, double[] expectedOutput) {
         for (double v : output)
-            assert Double.isFinite(v) : "Attempted to input invalid values into Deriv of Loss Function";
+            if (!Double.isFinite(v))
+                throw new IllegalArgumentException("Attempted to input invalid values into Deriv of Loss Function");
         double[] gradient = this.derivativeFunction.apply(output, expectedOutput);
-        for (double v : output) assert Double.isFinite(v) : "Deriv of Loss Function returning invalid values";
+        for (double v : gradient)
+            if (!Double.isFinite(v))
+                throw new IllegalStateException("Deriv of Loss Function returning invalid values");
         return gradient;
     }
 }

@@ -2,6 +2,7 @@ package Network;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * Represents a customizable neural network composed of multiple layers, supporting dense and convolutional
@@ -67,9 +68,11 @@ public class NN {
      * @param epsilon a hyper-parameter that's typically very small to avoid divide by zero errors
      */
     public static void learn(NN NN, double learningRate, double momentum, double beta, double epsilon, double[][] testCaseInputs, double[][] testCaseOutputs) {
-        assert testCaseInputs.length == testCaseOutputs.length;
+        if (testCaseInputs.length != testCaseOutputs.length)
+            throw new IllegalArgumentException("testCaseInputs and testCaseOutputs must have the same length");
         for (int i = 0; i < testCaseInputs.length; ++i)
-            assert testCaseInputs[i].length == NN.inputNum && testCaseOutputs[i].length == NN.outputNum;
+            if (testCaseInputs[i].length != NN.inputNum || testCaseOutputs[i].length != NN.outputNum)
+                throw new IllegalArgumentException("Each input/output pair must match network dimensions");
         //prevents other threads from calling learn on the same Neural Network
         synchronized (NN) {
             NN.clearGradient();
@@ -89,6 +92,8 @@ public class NN {
                     throw new RuntimeException(e);
                 }
 
+            if (testCaseInputs.length == 0)
+                throw new IllegalArgumentException("training batch must not be empty");
             NN.applyGradient(NN.optimizer, learningRate / testCaseInputs.length, momentum, beta, epsilon);
         }
     }
@@ -109,7 +114,8 @@ public class NN {
     public static void learnSingleOutput(NN NN, double learningRate, double momentum, double beta, double epsilon, double[] input, int outputIndex, double expectedOutput) {
         synchronized (NN) {
             double[] output = NN.calculateOutput(input);
-            assert 0 <= outputIndex && outputIndex < NN.outputNum;
+            if (outputIndex < 0 || outputIndex >= NN.outputNum)
+                throw new IllegalArgumentException("outputIndex out of range");
             output[outputIndex] = expectedOutput;
 
             NN.clearGradient();
@@ -143,7 +149,8 @@ public class NN {
      * {@code output} array of predictions
      */
     public double[] calculateOutput(double[] input) {
-        assert input.length == inputNum;
+        if (input.length != inputNum)
+            throw new IllegalArgumentException("input length must equal inputNum");
 
         double[] result = layers[0].calculateWeightedOutput(input);
         for (int i = 1; i < layers.length; i++) {
@@ -157,7 +164,8 @@ public class NN {
 
         result = outputAF.calculate(result);
 
-        assert result.length == outputNum;
+        if (result.length != outputNum)
+            throw new IllegalStateException("output length must equal outputNum");
         return result;
     }
 
@@ -168,7 +176,9 @@ public class NN {
         double[] output = calculateOutput(input);
         double sum = 0;
 
-        for (double v : output) assert Double.isFinite(v);
+        for (double v : output)
+            if (!Double.isFinite(v))
+                throw new IllegalStateException("network output contains non-finite values");
 
         double[] costs = costFunction.calculate(output, expectedOutput);
 
@@ -223,7 +233,8 @@ public class NN {
      * Applies the gradients of each layer in this Neural Network to itself
      */
     private void applyGradient(Optimizer optimizer, double adjustedLearningRate, double momentum, double beta, double epsilon) {
-        assert Double.isFinite(adjustedLearningRate);
+        if (!Double.isFinite(adjustedLearningRate))
+            throw new IllegalArgumentException("adjustedLearningRate must be finite");
         for (Layer layer : layers)
             layer.applyGradient(optimizer, adjustedLearningRate, momentum, beta, epsilon);
     }
@@ -242,8 +253,14 @@ public class NN {
         return sb.toString();
     }
 
+    //noinspection CloneDoesNotCallSuperClone,CloneDoesNotThrowCloneNotSupportedException
     @Override
+    @SuppressWarnings("MethodDoesNotCallSuperMethod")
     public Object clone() {
+        try {
+            super.clone();
+        } catch (CloneNotSupportedException ignored) {
+        }
         Layer[] newLayers = new Layer[layers.length];
         for (int i = 0; i < layers.length; i++) newLayers[i] = (Layer) layers[i].clone();
         return new NN(optimizer, inputNum, outputNum, temperature, hiddenAF, outputAF, costFunction, newLayers);
@@ -257,6 +274,11 @@ public class NN {
                 hiddenAF == o.hiddenAF && outputAF == o.outputAF &&
                 costFunction == o.costFunction &&
                 Arrays.equals(layers, o.layers);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(inputNum, outputNum, temperature, hiddenAF, outputAF, costFunction, Arrays.hashCode(layers));
     }
 
     /**
@@ -336,7 +358,8 @@ public class NN {
         public NetworkBuilder addConvolutionalLayer(int inputWidth, int inputHeight, int inputLength,
                                                     int kernelWidth, int kernelHeight, int numKernels,
                                                     int strideWidth, int strideHeight, boolean padding) {
-            assert (layers.isEmpty() ? inputNum : layers.getLast().nodes) == inputWidth * inputHeight * inputLength;
+            if ((layers.isEmpty() ? inputNum : layers.getLast().nodes) != inputWidth * inputHeight * inputLength)
+                throw new IllegalArgumentException("input dimensions do not match previous layer output");
             layers.add(new ConvolutionalLayer(inputWidth, inputHeight, inputLength, kernelWidth, kernelHeight, numKernels, strideWidth, strideHeight, padding));
             outputNum = layers.getLast().nodes;
             return this;
@@ -414,7 +437,7 @@ public class NN {
                 throw new MissingInformationException();
             for (Layer layer : layers)
                 layer.initialize(Activation.getInitializer(hiddenAF, inputNum, outputNum), optimizer);
-            return new NN(optimizer, inputNum, outputNum, temperature, hiddenAF, outputAF, costFunction, layers.toArray(new Layer[0]));
+            return new NN(optimizer, inputNum, outputNum, temperature, hiddenAF, outputAF, costFunction, layers.toArray(Layer[]::new));
         }
     }
 

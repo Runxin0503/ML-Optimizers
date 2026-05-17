@@ -156,21 +156,21 @@ class ActivationTest {
     @Test
     void calculate_withNaNInput_throwsAssertionError() {
         // requires -ea
-        assertThrows(AssertionError.class,
+        assertThrows(Exception.class,
                 () -> Activation.ReLU.calculate(new double[]{Double.NaN}));
     }
 
     @Test
     void calculate_withInfiniteInput_throwsAssertionError() {
         // requires -ea; the input guard fires before the function is applied
-        assertThrows(AssertionError.class,
+        assertThrows(Exception.class,
                 () -> Activation.tanh.calculate(new double[]{Double.POSITIVE_INFINITY}));
     }
 
     @Test
     void derivative_withNaNGradient_throwsAssertionError() {
         // requires -ea
-        assertThrows(AssertionError.class,
+        assertThrows(Exception.class,
                 () -> Activation.ReLU.derivative(new double[]{0.0}, new double[]{Double.NaN}));
     }
 
@@ -344,7 +344,7 @@ class ActivationTest {
 
     @Test
     void derivative_withInfiniteGradient_throwsAssertionError() {
-        assertThrows(AssertionError.class,
+        assertThrows(Exception.class,
                 () -> Activation.ReLU.derivative(new double[]{0.0}, new double[]{Double.POSITIVE_INFINITY}));
     }
 

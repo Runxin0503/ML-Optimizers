@@ -1,3 +1,5 @@
+package Blackbox;
+
 import Network.NN;
 import Network.Activation;
 import Network.Cost;
@@ -11,6 +13,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
+import static Blackbox.BackPropTest.irisTestNum;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class IrisDatasetTest {
@@ -40,7 +43,7 @@ public class IrisDatasetTest {
         }
     }
 
-    @RepeatedTest(1000)
+    @RepeatedTest(irisTestNum)
     void testDataset() {
         final NN NeuralNet = new NN.NetworkBuilder().setInputNum(4)
                 .addDenseLayer(10).addDenseLayer(10).addDenseLayer(names.size())

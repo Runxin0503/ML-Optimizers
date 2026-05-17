@@ -1,3 +1,5 @@
+package Blackbox;
+
 import Network.Activation;
 import Network.Cost;
 import Network.NN;
@@ -8,6 +10,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.Arrays;
 
+import static Blackbox.BackPropTest.mnistTestNum;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class MNISTDatasetTest {
@@ -33,7 +36,7 @@ public class MNISTDatasetTest {
         }
     }
 
-    @RepeatedTest(100)
+    @RepeatedTest(mnistTestNum)
     void testDataset() {
         final NN NeuralNet = new NN.NetworkBuilder().setInputNum(784)
                 .addDenseLayer(200).addDenseLayer(10)
@@ -65,7 +68,7 @@ public class MNISTDatasetTest {
         evaluatePerformanceOnTest(NeuralNet, 0,0.95);
     }
 
-    @RepeatedTest(100)
+    @RepeatedTest(mnistTestNum)
     void testDatasetConvolutional() {
         final NN NeuralNet = new NN.NetworkBuilder().setInputNum(784)
                 .addConvolutionalLayer(28,28,1,5,5,32,2,2)

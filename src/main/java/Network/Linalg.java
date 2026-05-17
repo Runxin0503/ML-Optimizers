@@ -5,7 +5,8 @@ import java.util.stream.IntStream;
 
 public class Linalg {
     public static double[] matrixMultiply(double[][] matrix, double[] input) {
-        assert matrix.length == input.length;
+        if (matrix.length != input.length)
+            throw new IllegalArgumentException("matrix rows must match input length");
 //        double[] output = new double[matrix[0].length];
 //        for (int i = 0; i < matrix.length; i++)
 //            output = Linalg.add(output, Linalg.scale(input[i], matrix[i]));
@@ -14,12 +15,14 @@ public class Linalg {
     }
 
     public static double dotProduct(double[] first, double[] second) {
-        assert first.length == second.length;
+        if (first.length != second.length)
+            throw new IllegalArgumentException("array lengths must match");
         return IntStream.range(0, first.length).mapToDouble(i -> first[i] * second[i]).sum();
     }
 
     public static double[] multiply(double[] first, double[] second) {
-        assert first.length == second.length;
+        if (first.length != second.length)
+            throw new IllegalArgumentException("array lengths must match");
         return IntStream.range(0, first.length).mapToDouble(i -> first[i] * second[i]).toArray();
     }
 
@@ -32,12 +35,14 @@ public class Linalg {
     }
 
     public static double[] add(double[] first, double[] second) {
-        assert first.length == second.length;
+        if (first.length != second.length)
+            throw new IllegalArgumentException("array lengths must match");
         return IntStream.range(0, first.length).mapToDouble(i -> first[i] + second[i]).toArray();
     }
 
     public static void addInPlace(double[] first, double[] second) {
-        assert first.length == second.length;
+        if (first.length != second.length)
+            throw new IllegalArgumentException("array lengths must match");
         IntStream.range(0, first.length).parallel().forEach(i -> first[i] += second[i]);
     }
 

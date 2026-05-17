@@ -93,6 +93,12 @@ public enum Activation {
     /**
      * Softmax activation for converting logits into probabilities.
      * Numerically stable using max-shift trick.
+     * <p>
+     * Class Invariant: the running max seed is {@code Double.NEGATIVE_INFINITY} (NOT
+     * {@code Double.MIN_VALUE}, which is the smallest *positive* double), so the max-shift
+     * trick remains stable for all-negative logits -- every {@code exp(x - max)} stays in
+     * {@code (0, 1]} and the denominator is strictly positive, producing a valid probability
+     * distribution for any finite input.
      */
     softmax(input -> {
         double[] output = new double[input.length];
@@ -142,10 +148,12 @@ public enum Activation {
      */
     double[] calculate(double[] input) {
         for (double v : input)
-            assert Double.isFinite(v) : "Attempted to input invalid values into Activation Function " + Arrays.toString(input);
+            if (!Double.isFinite(v))
+                throw new IllegalArgumentException("Attempted to input invalid values into Activation Function " + Arrays.toString(input));
         double[] output = this.function.apply(input);
         for (double v : output)
-            assert Double.isFinite(v) : "Activation Function returning invalid values " + Arrays.toString(input) + "\n" + Arrays.toString(output);
+            if (!Double.isFinite(v))
+                throw new IllegalStateException("Activation Function returning invalid values " + Arrays.toString(input) + "\n" + Arrays.toString(output));
         return output;
     }
 
@@ -159,10 +167,12 @@ public enum Activation {
      */
     double[] derivative(double[] z, double[] da_dC) {
         for (double v : da_dC)
-            assert Double.isFinite(v) : "Attempted to input invalid values into Deriv of Activation Function " + Arrays.toString(z) + "  " + Arrays.toString(da_dC);
+            if (!Double.isFinite(v))
+                throw new IllegalArgumentException("Attempted to input invalid values into Deriv of Activation Function " + Arrays.toString(z) + "  " + Arrays.toString(da_dC));
         double[] newGradient = this.derivativeFunction.apply(z, da_dC);
         for (double v : newGradient)
-            assert Double.isFinite(v) : "Deriv of Activation Function returning invalid values " + Arrays.toString(z) + "  " + Arrays.toString(da_dC) + "\n" + Arrays.toString(newGradient);
+            if (!Double.isFinite(v))
+                throw new IllegalStateException("Deriv of Activation Function returning invalid values " + Arrays.toString(z) + "  " + Arrays.toString(da_dC) + "\n" + Arrays.toString(newGradient));
         return newGradient;
     }
 

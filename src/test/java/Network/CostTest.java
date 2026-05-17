@@ -72,14 +72,14 @@ class CostTest {
     @Test
     void crossEntropy_calculate_zeroProbabilityForTrueLabel_throwsAssertionError() {
         // requires -ea: log(0) = -Infinity, so the cost is non-finite and the output guard fires
-        assertThrows(AssertionError.class,
+        assertThrows(Exception.class,
                 () -> Cost.crossEntropy.calculate(new double[]{0.0}, new double[]{1}));
     }
 
     @Test
     void crossEntropy_calculate_unitProbabilityForFalseLabel_throwsAssertionError() {
         // requires -ea: log(1 - 1) = log(0) = -Infinity
-        assertThrows(AssertionError.class,
+        assertThrows(Exception.class,
                 () -> Cost.crossEntropy.calculate(new double[]{1.0}, new double[]{0}));
     }
 
@@ -104,14 +104,14 @@ class CostTest {
     @Test
     void calculate_withNaNOutput_throwsAssertionError() {
         // requires -ea
-        assertThrows(AssertionError.class,
+        assertThrows(Exception.class,
                 () -> Cost.diffSquared.calculate(new double[]{Double.NaN}, new double[]{0}));
     }
 
     @Test
     void derivative_withInfiniteOutput_throwsAssertionError() {
         // requires -ea
-        assertThrows(AssertionError.class,
+        assertThrows(Exception.class,
                 () -> Cost.diffSquared.derivative(new double[]{Double.POSITIVE_INFINITY}, new double[]{0}));
     }
 
@@ -220,10 +220,9 @@ class CostTest {
     }
 
     @Test
-    void derivative_withNaNExpectedOutput_propagatesSilently() {
-        // no guard on expected output; NaN flows through
-        double[] res = Cost.diffSquared.derivative(new double[]{1.0}, new double[]{Double.NaN});
-        assertTrue(Double.isNaN(res[0]));
+    void derivative_withNaNExpectedOutput_throwsException() {
+        assertThrows(Exception.class,
+                () -> Cost.diffSquared.derivative(new double[]{1.0}, new double[]{Double.NaN}));
     }
 
     @Test

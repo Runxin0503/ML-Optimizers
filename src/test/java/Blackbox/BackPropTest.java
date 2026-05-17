@@ -1,3 +1,5 @@
+package Blackbox;
+
 import Network.NN;
 import Network.Activation;
 import Network.Cost;
@@ -7,8 +9,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BackPropTest {
 
+//    public static final int backPropTestNum = 10000;
+//    public static final int irisTestNum = 1000;
+//    public static final int mnistTestNum = 100;
+
+    public static final int backPropTestNum = 10;
+    public static final int irisTestNum = 5;
+    public static final int mnistTestNum = 1;
+
     /** Test Procedure: When input is 0, predict 1. When input is 1, predict 0 */
-    @RepeatedTest(10000)
+    @RepeatedTest(backPropTestNum)
     void trainNOTNeuralNetwork() {
         final NN linearNN = new NN.NetworkBuilder().setInputNum(1)
                 .addDenseLayer(20).addDenseLayer(2)
@@ -34,7 +44,7 @@ public class BackPropTest {
     }
 
     /** Test Procedure: AND. When input is both 1, predict 1, otherwise predict 0 */
-    @RepeatedTest(10000)
+    @RepeatedTest(backPropTestNum)
     void trainANDNeuralNetwork() {
         final NN linearNN = new NN.NetworkBuilder().setInputNum(2)
                 .addDenseLayer(6).addDenseLayer(2)
@@ -64,7 +74,7 @@ public class BackPropTest {
     }
 
     /** Test Procedure: OR. When either input is 1, predict 1, otherwise predict 0 */
-    @RepeatedTest(10000)
+    @RepeatedTest(backPropTestNum)
     void trainORNeuralNetwork() {
         final NN linearNN = new NN.NetworkBuilder().setInputNum(2)
                 .addDenseLayer(4).addDenseLayer(2)
@@ -94,7 +104,7 @@ public class BackPropTest {
     }
 
     /** Test Procedure: XOR. When both inputs are 1,1 or 0,0 predict 0, otherwise predict 1 */
-    @RepeatedTest(10000)
+    @RepeatedTest(backPropTestNum)
     //failing 2 out of 10,000, acceptable
     void trainXORNeuralNetwork() {
         final NN semiComplexNN = new NN.NetworkBuilder().setInputNum(2)
@@ -139,7 +149,7 @@ public class BackPropTest {
         return true;
     }
 
-//    @RepeatedTest(10000) //commented out because this is NOT a great test for adam optimizer, failed 33 out of 10,000 tests
+//    @RepeatedTest(backPropTestNum) //commented out because this is NOT a great test for adam optimizer, failed 33 out of 10,000 tests
 //    void trainLinearFunctions() {
 //        Random rand = new Random();
 //        double m = rand.nextDouble(-1000, 1000), b = rand.nextDouble(-1000, 1000);

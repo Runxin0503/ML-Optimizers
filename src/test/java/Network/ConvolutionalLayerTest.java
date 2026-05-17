@@ -71,7 +71,7 @@ class ConvolutionalLayerTest {
     void calculateWeightedOutput_wrongInputLength_throwsAssertionError() {
         // requires -ea: input length must equal inputWidth * inputHeight * inputLength (25 here)
         ConvolutionalLayer layer = new ConvolutionalLayer(5, 5, 1, 3, 3, 2, 1, 1, false);
-        assertThrows(AssertionError.class, () -> layer.calculateWeightedOutput(new double[24]));
+        assertThrows(Exception.class, () -> layer.calculateWeightedOutput(new double[24]));
     }
 
     // ---- updateGradient ----------------------------------------------------
@@ -230,7 +230,7 @@ class ConvolutionalLayerTest {
     @Test
     void updateGradient_nanDzDc_throwsAssertionError() {
         ConvolutionalLayer layer = new ConvolutionalLayer(2,2,1,2,2,1,1,1,false);
-        assertThrows(AssertionError.class, () -> layer.updateGradient(new double[]{Double.NaN}, new double[]{1,1,1,1}));
+        assertThrows(Exception.class, () -> layer.updateGradient(new double[]{Double.NaN}, new double[]{1,1,1,1}));
     }
 
     @Test
