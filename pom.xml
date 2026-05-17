@@ -34,6 +34,19 @@
                 </configuration>
             </plugin>
 
+            <!-- Maven's bundled Surefire (2.12.4) predates JUnit 5 and discovers no tests.
+                 Pin a 3.x version so the JUnit Jupiter suite runs. enableAssertions is true
+                 by default, but is set explicitly because several edge-case tests assert that
+                 the Network package's `assert` contracts fire. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <enableAssertions>true</enableAssertions>
+                </configuration>
+            </plugin>
+
         </plugins>
     </build>
 

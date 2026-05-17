@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find \"C:\\\\Users\\\\User\\\\AppData\\\\Roaming\\\\Code\\\\logs\" -name \"*Claude*VSCode*.log\" -mtime -1 2>/dev/null | head -5)",
+      "Read(//c/Users/User/AppData/Roaming/Code/logs/**)"
+    ]
+  }
+}

@@ -132,7 +132,7 @@ class DenseLayer extends Layer {
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof DenseLayer o) || super.equals(obj)) return false;
+        if (!(obj instanceof DenseLayer o) || !super.equals(obj)) return false;
         return Arrays.deepEquals(weights, o.weights) &&
                 Arrays.deepEquals(weightsVelocity, o.weightsVelocity) &&
                 Arrays.deepEquals(weightsVelocitySquared, o.weightsVelocitySquared) &&
@@ -141,7 +141,7 @@ class DenseLayer extends Layer {
 
     @Override
     public Object clone() {
-        int nodesBefore = weights[0].length;
+        int nodesBefore = weights.length;
         DenseLayer newLayer = new DenseLayer(nodesBefore, nodes);
         System.arraycopy(bias, 0, newLayer.bias, 0, nodes);
         if (!Objects.isNull(biasVelocity)) {
@@ -156,12 +156,12 @@ class DenseLayer extends Layer {
         }
         System.arraycopy(biasGradient, 0, newLayer.biasGradient, 0, nodes);
         for (int i = 0; i < weights.length; i++) {
-            System.arraycopy(weights[i], 0, newLayer.weights[i], 0, nodesBefore);
+            System.arraycopy(weights[i], 0, newLayer.weights[i], 0, nodes);
             if (!Objects.isNull(weightsVelocity))
-                System.arraycopy(weightsVelocity[i], 0, newLayer.weightsVelocity[i], 0, nodesBefore);
+                System.arraycopy(weightsVelocity[i], 0, newLayer.weightsVelocity[i], 0, nodes);
             if (!Objects.isNull(weightsVelocitySquared))
-                System.arraycopy(weightsVelocitySquared[i], 0, newLayer.weightsVelocitySquared[i], 0, nodesBefore);
-            System.arraycopy(weightsGradient[i], 0, newLayer.weightsGradient[i], 0, nodesBefore);
+                System.arraycopy(weightsVelocitySquared[i], 0, newLayer.weightsVelocitySquared[i], 0, nodes);
+            System.arraycopy(weightsGradient[i], 0, newLayer.weightsGradient[i], 0, nodes);
         }
         return newLayer;
     }

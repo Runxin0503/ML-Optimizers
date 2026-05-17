@@ -90,8 +90,8 @@ public abstract class Layer {
                 Linalg.addInPlace(biasVelocity, Linalg.scale(1 - momentum, biasGradient));
                 Linalg.scaleInPlace(beta, biasVelocitySquared);
                 Linalg.addInPlace(biasVelocitySquared, Linalg.scale(1 - beta, Linalg.multiply(biasGradient, biasGradient)));
-                double[] correctedVelocity = Linalg.scale(correctionMomentum, biasVelocity),
-                        correctedVelocitySquared = Linalg.scale(correctionBeta, biasVelocitySquared);
+                double[] correctedVelocity = Linalg.scale(1.0 / correctionMomentum, biasVelocity),
+                        correctedVelocitySquared = Linalg.scale(1.0 / correctionBeta, biasVelocitySquared);
                 IntStream.range(0, bias.length).parallel().forEach(i ->
                         bias[i] -= adjustedLearningRate * correctedVelocity[i] / Math.sqrt(correctedVelocitySquared[i] + epsilon)
                 );

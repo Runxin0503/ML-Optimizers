@@ -47,7 +47,7 @@ public enum Cost {
     }, (input, expectedInput) -> {
         double[] output = new double[input.length];
         for (int i = 0; i < input.length; i++)
-            output[i] = -((input[i] == 0 ? 0 : expectedInput[i] / input[i]) - (1 - expectedInput[i]) * (1 - input[i]));
+            output[i] = -((input[i] == 0 ? 0 : expectedInput[i] / input[i]) - (input[i] == 1 ? 0 : (1 - expectedInput[i]) / (1 - input[i])));
         return output;
     });
 

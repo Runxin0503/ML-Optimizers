@@ -197,7 +197,7 @@ class ConvolutionalLayer extends Layer {
                 };
                 case RMS_PROP -> updateRule = (x, y) -> {
                     kernelsVelocitySquared[layer][x][y] = beta * kernelsVelocitySquared[layer][x][y] + (1 - beta) * (kernelsGradient[layer][x][y] * kernelsGradient[layer][x][y]);
-                    kernels[layer][x][y] -= adjustedLearningRate * kernelsGradient[layer][x][y] / Math.sqrt(kernelsGradient[layer][x][y] + epsilon);
+                    kernels[layer][x][y] -= adjustedLearningRate * kernelsGradient[layer][x][y] / Math.sqrt(kernelsVelocitySquared[layer][x][y] + epsilon);
                 };
                 case ADAM -> {
                     double correctionMomentum = 1 - Math.pow(momentum, t);
@@ -250,7 +250,7 @@ class ConvolutionalLayer extends Layer {
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof ConvolutionalLayer o) || super.equals(obj)) return false;
+        if (!(obj instanceof ConvolutionalLayer o) || !super.equals(obj)) return false;
 
         return inputWidth == o.inputWidth && inputHeight == o.inputHeight && inputLength == o.inputLength &&
                 kernelWidth == o.kernelWidth && kernelHeight == o.kernelHeight && numKernels == o.numKernels &&
@@ -280,12 +280,12 @@ class ConvolutionalLayer extends Layer {
         System.arraycopy(biasGradient, 0, newLayer.biasGradient, 0, nodes);
         for (int i = 0; i < kernels.length; i++)
             for (int j = 0; j < kernels[0].length; j++) {
-                System.arraycopy(kernels[i][j], 0, newLayer.kernels[i][j], 0, kernels[0].length);
+                System.arraycopy(kernels[i][j], 0, newLayer.kernels[i][j], 0, kernelHeight);
                 if (!Objects.isNull(kernelsVelocity))
-                    System.arraycopy(kernelsVelocity[i][j], 0, newLayer.kernelsVelocity[i][j], 0, kernels[0].length);
+                    System.arraycopy(kernelsVelocity[i][j], 0, newLayer.kernelsVelocity[i][j], 0, kernelHeight);
                 if (!Objects.isNull(kernelsVelocitySquared))
-                    System.arraycopy(kernelsVelocitySquared[i][j], 0, newLayer.kernelsVelocitySquared[i][j], 0, kernels[0].length);
-                System.arraycopy(kernelsGradient[i][j], 0, newLayer.kernelsGradient[i][j], 0, kernels[0].length);
+                    System.arraycopy(kernelsVelocitySquared[i][j], 0, newLayer.kernelsVelocitySquared[i][j], 0, kernelHeight);
+                System.arraycopy(kernelsGradient[i][j], 0, newLayer.kernelsGradient[i][j], 0, kernelHeight);
             }
 
         return newLayer;

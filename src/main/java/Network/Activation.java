@@ -96,7 +96,7 @@ public enum Activation {
      */
     softmax(input -> {
         double[] output = new double[input.length];
-        double latestInputSum = 0, max = Double.MIN_VALUE;
+        double latestInputSum = 0, max = Double.NEGATIVE_INFINITY;
         for (double num : input) max = Math.max(max, num);
         for (double num : input) latestInputSum += Math.exp(num - max);
         for (int i = 0; i < input.length; i++) output[i] = Math.exp(input[i] - max) / latestInputSum;
@@ -104,7 +104,7 @@ public enum Activation {
     }, (input, gradient) -> {
         double[] output = new double[input.length];
         double[] softmaxOutput = new double[input.length];
-        double latestInputSum = 0, max = Double.MIN_VALUE;
+        double latestInputSum = 0, max = Double.NEGATIVE_INFINITY;
         for (double num : input) max = Math.max(max, num);
         for (double num : input) latestInputSum += Math.exp(num - max);
         for (int i = 0; i < input.length; i++) softmaxOutput[i] = Math.exp(input[i] - max) / latestInputSum;
